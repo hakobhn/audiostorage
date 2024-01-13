@@ -1,13 +1,13 @@
-package com.epam.music.resources;
+package com.epam.training.microservices.audio.songs;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ResourcesApplication {
+public class SongsApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ResourcesApplication.class, args);
+		SpringApplication.run(SongsApplication.class, args);
 	}
 
 }

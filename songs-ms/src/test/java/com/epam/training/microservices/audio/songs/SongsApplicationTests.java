@@ -1,10 +1,10 @@
-package com.epam.music.resources;
+package com.epam.training.microservices.audio.songs;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ResourcesApplicationTests {
+class SongsApplicationTests {
 
 	@Test
 	void contextLoads() {

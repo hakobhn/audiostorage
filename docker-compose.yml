@@ -1,51 +1,44 @@
-# Run pull command:  docker-compose -f .\docker-compose-local.yml pull
-# Start cluster command: docker-compose -f .\docker-compose-local.yml up -d
-# Monitor cluster: docker ps -a
-# Stop cluster command: docker-compose -f .\docker-compose-local.yml down
-
 version: '3.6'
 
 services:
-  users-ms:
-    build:
-      context: ./users-ms
-    container_name: users-ms
-    restart: on-failure
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dockerdemo
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-    depends_on:
-      - postgres
-
-  posts-ms:
-    build:
-      context: ./posts-ms
-    container_name: posts-ms
-    restart: on-failure
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/dockerdemo
-      USERS_MS_BASE_URI: http://users-ms:8080
-    depends_on:
-      - mongodb
-      - users-ms
+#  resources-ms:
+#    build:
+#      context: ./resources-ms
+#    container_name: resources-ms
+#    restart: on-failure
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/audio
+#    depends_on:
+#      - mongodb
+#
+#  songs-ms:
+#    build:
+#      context: ./songs-ms
+#    container_name: songs-ms
+#    restart: on-failure
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/songs
+#      SPRING_DATASOURCE_USERNAME: postgres
+#      SPRING_DATASOURCE_PASSWORD: postgres
+#    depends_on:
+#      - postgres
 
   postgres:
     image: postgres:14.1-alpine
     container_name: postgres
     restart: always
     environment:
-      - POSTGRES_DB=dockerdemo
+      - POSTGRES_DB=audio
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
-      - '5442:5432'
+      - '5432:5432'
     volumes:
-      - ./users-ms/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./data/postgres:/var/lib/postgresql/data
 
   mongodb:
@@ -53,55 +46,15 @@ services:
     container_name: mongodb
     restart: always
     ports:
-      - '27027:27017'
+      - '27017:27017'
     volumes:
-      - ./posts-ms/mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
       - ./data/mongodb/data:/data/db
     environment:
       - MONGODB_INITSCRIPTS_DIR=/docker-entrypoint-initdb.d
       - MONGODB_USERNAME=demo
-      - MONGODB_PASSWORD=dockerdemo123!
-      - MONGODB_DATABASE=dockerdemo
-
-  portainer:
-    image: portainer/portainer
-    # pass: superpassword
-    command: [ "--admin-password=$$2y$$05$$w5wsvlEDXxPjh2GGfkoe9.At0zj8r7DeafAkXXeubs0JnmxLjyw/a", "-H",  "unix:///var/run/docker.sock" ]
-    restart: always
-    ports:
-      - '9000:9000'
-      - '8000:8000'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  cadvisor:
-    image: google/cadvisor:latest
-    container_name: monitoring_cadvisor
-    restart: unless-stopped
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    ports:
-      - '9080:8080'
-
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    volumes:
-      - ./env/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - 9090:9090
-
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - 3000:3000
-    env_file:
-      - ./env/grafana.env
-
+      - MONGODB_PASSWORD=audio123!
+      - MONGODB_DATABASE=songs
 
 # Volumes
 volumes:
