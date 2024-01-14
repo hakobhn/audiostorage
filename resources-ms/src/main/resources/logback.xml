@@ -14,7 +14,7 @@
     </appender>
 
     <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>./logs/app.log</file>
+        <file>logs/resources/app.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>./logs/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>

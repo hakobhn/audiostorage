@@ -1,31 +1,32 @@
 version: '3.6'
 
 services:
-#  resources-ms:
-#    build:
-#      context: ./resources-ms
-#    container_name: resources-ms
-#    restart: on-failure
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/audio
-#    depends_on:
-#      - mongodb
-#
-#  songs-ms:
-#    build:
-#      context: ./songs-ms
-#    container_name: songs-ms
-#    restart: on-failure
-#    ports:
-#      - "8081:8081"
-#    environment:
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/songs
-#      SPRING_DATASOURCE_USERNAME: postgres
-#      SPRING_DATASOURCE_PASSWORD: postgres
-#    depends_on:
-#      - postgres
+  resources-ms:
+    build:
+      context: ./resources-ms
+    container_name: resources-ms
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audio
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      - postgres
+      - songs-ms
+
+  songs-ms:
+    build:
+      context: ./songs-ms
+    container_name: songs-ms
+    restart: on-failure
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/songs
+    depends_on:
+      - mongodb
 
   postgres:
     image: postgres:14.1-alpine
@@ -36,7 +37,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
-      - '5432:5432'
+      - '5442:5432'
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./data/postgres:/var/lib/postgresql/data
@@ -46,7 +47,7 @@ services:
     container_name: mongodb
     restart: always
     ports:
-      - '27017:27017'
+      - '27027:27017'
     volumes:
       - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
       - ./data/mongodb/data:/data/db

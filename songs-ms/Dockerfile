@@ -5,6 +5,6 @@ RUN mvn -f /usr/src/app/pom.xml clean package
 
 
 FROM openjdk:11-jre-slim
-COPY --from=build /usr/src/app/target/songs-0.0.1-SNAPSHOT.jar /usr/app/songs-0.0.1-SNAPSHOT.jar
-EXPOSE 8080
-CMD ["java","-jar","/usr/app/songs-0.0.1-SNAPSHOT.jar"]
+COPY --from=build /usr/src/app/target/songs-*.jar /usr/app/app.jar
+EXPOSE 8081
+CMD ["java","-jar","/usr/app/app.jar"]

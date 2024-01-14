@@ -2,9 +2,13 @@ package com.epam.training.microservices.audio.resources.controller;
 
 import com.epam.training.microservices.audio.resources.dto.AudioDto;
 import com.epam.training.microservices.audio.resources.dto.AudioInput;
+import com.epam.training.microservices.audio.resources.dto.AudioMetadata;
+import com.epam.training.microservices.audio.resources.dto.AudioShort;
 import com.epam.training.microservices.audio.resources.exception.BadRequestException;
 import com.epam.training.microservices.audio.resources.exception.UnsupportedFileFormatException;
 import com.epam.training.microservices.audio.resources.service.AudioFileService;
+import com.epam.training.microservices.audio.resources.service.MetadataService;
+import com.epam.training.microservices.audio.resources.service.SongService;
 import com.epam.training.microservices.audio.resources.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,12 +27,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.epam.training.microservices.audio.resources.controller.ControllerEndpoints.RESOURCES_URL;
@@ -41,26 +45,38 @@ public class AudioFileController {
 
     private final AudioFileService audioFileService;
     private final StorageService storageService;
+    private final MetadataService metadataService;
+    private final SongService songService;
 
-    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AudioDto> upload(@RequestParam("file") MultipartFile uploadedFile) throws IOException {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AudioShort> upload(@RequestParam("file") MultipartFile uploadedFile) throws IOException {
 
-        if (!"audio/mpeg".equalsIgnoreCase(uploadedFile.getContentType())) {
+        byte[] data = uploadedFile.getBytes();
+
+        if (!"audio/mpeg".equalsIgnoreCase(metadataService.detectContentType(data))) {
             throw new UnsupportedFileFormatException("Validation failed or request body is invalid MP3");
         }
 
-        String location = storageService.store(uploadedFile.getOriginalFilename(), new ByteArrayInputStream(uploadedFile.getBytes()));
+        String location = storageService.store(uploadedFile.getOriginalFilename(), data);
+        AudioMetadata metadata = metadataService.extract(data);
 
         AudioInput audioInput = AudioInput.builder()
                 .name(uploadedFile.getOriginalFilename())
                 .location(location)
                 .bytes(uploadedFile.getSize())
                 .build();
+        AudioDto dto = null;
         try {
-            return ResponseEntity.ok(audioFileService.create(audioInput));
+            dto = audioFileService.create(audioInput);
+            metadata.setResourceId(dto.getId());
+            songService.addSong(metadata);
+            return ResponseEntity.ok(AudioShort.builder().id(dto.getId()).build());
         } catch (Exception e) {
+            log.warn("Unable process file {}", uploadedFile.getOriginalFilename(), e);
+            Optional.ofNullable(dto)
+                    .ifPresent(d -> audioFileService.delete(d.getId()));
             storageService.delete(location);
-            throw new RuntimeException("Unable to store file");
+            throw new RuntimeException("Unable to store file", e);
         }
     }
 
