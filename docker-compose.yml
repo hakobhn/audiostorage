@@ -9,11 +9,33 @@ services:
     ports:
       - "8080:8080"
     environment:
+      STORAGE_HOME: /home/storage
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USER: guest
+      SPRING_RABBITMQ_PASSWORD: guest
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audio
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+    volumes:
+      - ./storage:/home/storage
     depends_on:
+      - rabbitmq
       - postgres
+
+  processor-ms:
+    build:
+      context: ./resource-processor-ms
+    container_name: resource-processor-ms
+    restart: on-failure
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USER: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+    depends_on:
+      - rabbitmq
+      - resources-ms
       - songs-ms
 
   songs-ms:
@@ -24,9 +46,23 @@ services:
     ports:
       - "8081:8081"
     environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USER: guest
+      SPRING_RABBITMQ_PASSWORD: guest
       SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/songs
     depends_on:
+      - rabbitmq
       - mongodb
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
   postgres:
     image: postgres:14.1-alpine

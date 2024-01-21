@@ -1,11 +1,9 @@
 package com.epam.training.microservices.audio.resources.controller;
 
 import com.epam.training.microservices.audio.resources.ResourcesApplication;
-import com.epam.training.microservices.audio.resources.dto.AudioMetadata;
-import com.epam.training.microservices.audio.resources.dto.AudioShort;
+import com.epam.training.microservices.audio.resources.dto.AudioMessage;
 import com.epam.training.microservices.audio.resources.service.AudioFileService;
-import com.epam.training.microservices.audio.resources.service.MetadataService;
-import com.epam.training.microservices.audio.resources.service.SongService;
+import com.epam.training.microservices.audio.resources.service.AudioQueueingService;
 import com.epam.training.microservices.audio.resources.service.StorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,15 +60,13 @@ class AudioFileControllerTest {
 
     @Autowired
     private AudioFileService audioFileService;
-    @Autowired
-    private MetadataService metadataService;
     @MockBean
     private StorageService storageService;
     @MockBean
-    private SongService songService;
+    private AudioQueueingService audioQueueingService;
 
     @Captor
-    private ArgumentCaptor<AudioMetadata> metadataCaptor;
+    private ArgumentCaptor<AudioMessage> messageCaptor;
 
     @BeforeEach
     public void setUp() {
@@ -90,40 +86,20 @@ class AudioFileControllerTest {
                         .multipart(RESOURCES_URL)
                         .file("file", data))
                 .andDo(print())
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andReturn();
 
-        AudioShort actual = objectMapper.readValue(
-                result.getResponse().getContentAsString(), AudioShort.class);
+        String actual = result.getResponse().getContentAsString();
 
         // then
-        assertThat(actual).isNotNull();
-        assertThat(actual.getId()).isGreaterThan(0);
+        assertThat(actual).isEqualTo("Media has been successfully pushed to queue.");
 
-        verify(songService).addSong(metadataCaptor.capture());
-        AudioMetadata value = metadataCaptor.getValue();
+        verify(audioQueueingService).sendMessage(messageCaptor.capture());
+        AudioMessage value = messageCaptor.getValue();
 
-        assertThat(value.getName()).isEqualTo("Vanna Rainelle - YAD Яд ENGLISH VERSION(musicdownload.cc)");
-        assertThat(value.getArtist()).isEqualTo("Vanna Rainelle");
-        assertThat(value.getAlbum()).isEqualTo("English Mp3 Songs :: Musicdownload.cc");
-        assertThat(value.getLength()).isEqualTo("181012.296875");
-        assertThat(value.getYear()).isEqualTo("2023");
-    }
-
-    @Test
-    void shouldFailToAddInvalidAudio() throws Exception {
-        // given
-        Resource resource = resourceLoader.getResource("classpath:audio/file_example_WAV_1MG.wav");
-        File audio = resource.getFile();
-
-        byte[] data = Files.readAllBytes(audio.toPath());
-
-        // when
-        mockMvc.perform(MockMvcRequestBuilders
-                        .multipart(RESOURCES_URL)
-                        .file("file", data))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
+        assertThat(value.getName()).isBlank();
+        assertThat(value.getLocation()).isEqualTo("dummy/path");
+        assertThat(value.getData()).isNotNull();
     }
 
     @Test
@@ -140,5 +116,57 @@ class AudioFileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
                 .andDo(print());
+    }
+
+    @Test
+    void shouldDeleteById() throws Exception {
+        // given
+        RequestBuilder request = MockMvcRequestBuilders
+                .delete(RESOURCES_URL)
+                .param("id", "1,2");
+
+        // when
+        mockMvc.perform(request)
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldFailToDeleteByNotExistId() throws Exception {
+        // given
+        RequestBuilder request = MockMvcRequestBuilders
+                .delete(RESOURCES_URL)
+                .param("id", "3,4");
+
+        // when
+        mockMvc.perform(request)
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldDeleteByLocation() throws Exception {
+        // given
+        RequestBuilder request = MockMvcRequestBuilders
+                .delete(RESOURCES_URL + "/deleteByKey")
+                .param("key", "C:\\audio\\20240114223443_Vanna-Rainelle---YAD-Яд-ENGLISH-VERSION.mp3");
+
+        // when
+        mockMvc.perform(request)
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldNotFailOnDeleteingByNotExistLocation() throws Exception {
+        // given
+        RequestBuilder request = MockMvcRequestBuilders
+                .delete(RESOURCES_URL + "/deleteByKey")
+                .param("key", "C:\\audio\\Not-exists-20240114223443_Vanna-Rainelle---YAD-Яд-ENGLISH-VERSION.mp3");
+
+        // when
+        mockMvc.perform(request)
+                .andDo(print())
+                .andExpect(status().isOk());
     }
 }

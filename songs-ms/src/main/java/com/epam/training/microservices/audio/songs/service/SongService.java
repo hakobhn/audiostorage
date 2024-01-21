@@ -40,4 +40,10 @@ public class SongService {
         songRepository.deleteById(id);
     }
 
+    public void deleteByResourceId(long id) {
+        songRepository.findByResourceId(id).ifPresent(
+                song -> songRepository.deleteById(song.getId())
+        );
+    }
+
 }

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,10 +34,10 @@ public class SongController {
 
     private final SongService songService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<SongShort> create(@Valid @RequestBody SongDto songDto) {
         songDto = songService.create(songDto);
-        return ResponseEntity.ok(SongShort.builder().id(songDto.getId()).build());
+        return ResponseEntity.ok(new SongShort(songDto.getId()));
     }
 
     @GetMapping(value = "/{id}")
@@ -44,7 +45,7 @@ public class SongController {
         return ResponseEntity.ok(songService.getById(id));
     }
 
-
+    @DeleteMapping
     ResponseEntity<Map<String, List<Long>>> delete(@RequestParam("id") String idsStr) {
         List<Integer> ids = Arrays.stream(idsStr.split(","))
                 .map(Integer::parseInt)
@@ -61,6 +62,12 @@ public class SongController {
                         })
         );
         return ResponseEntity.ok(Map.of("ids", removedIds));
+    }
+
+    @DeleteMapping(path = "deleteByResource")
+    ResponseEntity<?> deleteByResource(@RequestParam(name = "resourceId") Long resourceId) {
+        songService.deleteByResourceId(resourceId);
+        return ResponseEntity.ok().build();
     }
 
 }

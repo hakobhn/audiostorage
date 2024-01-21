@@ -1,26 +1,29 @@
 package com.epam.training.microservices.audio.resources.controller;
 
+import com.epam.training.microservices.audio.resources.config.LocalizedMessageProvider;
 import com.epam.training.microservices.audio.resources.dto.AudioDto;
 import com.epam.training.microservices.audio.resources.dto.AudioInput;
-import com.epam.training.microservices.audio.resources.dto.AudioMetadata;
+import com.epam.training.microservices.audio.resources.dto.AudioMessage;
 import com.epam.training.microservices.audio.resources.dto.AudioShort;
 import com.epam.training.microservices.audio.resources.exception.BadRequestException;
-import com.epam.training.microservices.audio.resources.exception.UnsupportedFileFormatException;
+import com.epam.training.microservices.audio.resources.exception.NotFoundException;
 import com.epam.training.microservices.audio.resources.service.AudioFileService;
-import com.epam.training.microservices.audio.resources.service.MetadataService;
-import com.epam.training.microservices.audio.resources.service.SongService;
+import com.epam.training.microservices.audio.resources.service.AudioQueueingService;
 import com.epam.training.microservices.audio.resources.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,10 +35,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.epam.training.microservices.audio.resources.controller.ControllerEndpoints.RESOURCES_URL;
+import static com.epam.training.microservices.audio.resources.util.StringUtils.removeNonASCII;
 
 @Slf4j
 @RestController
@@ -43,40 +46,31 @@ import static com.epam.training.microservices.audio.resources.controller.Control
 @RequiredArgsConstructor
 public class AudioFileController {
 
+    private final LocalizedMessageProvider messageProvider;
+    private final AudioQueueingService audioQueueingService;
     private final AudioFileService audioFileService;
     private final StorageService storageService;
-    private final MetadataService metadataService;
-    private final SongService songService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AudioShort> upload(@RequestParam("file") MultipartFile uploadedFile) throws IOException {
+    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile uploadedFile) throws IOException {
 
         byte[] data = uploadedFile.getBytes();
 
-        if (!"audio/mpeg".equalsIgnoreCase(metadataService.detectContentType(data))) {
-            throw new UnsupportedFileFormatException("Validation failed or request body is invalid MP3");
-        }
+        String key = storageService.store(removeNonASCII(uploadedFile.getOriginalFilename()), data);
 
-        String location = storageService.store(uploadedFile.getOriginalFilename(), data);
-        AudioMetadata metadata = metadataService.extract(data);
+        audioQueueingService.sendMessage(new AudioMessage(uploadedFile.getOriginalFilename(), key, data));
+        return new ResponseEntity<>(messageProvider.getMessage("meda.pushed.success"), HttpStatus.CREATED);
+    }
 
-        AudioInput audioInput = AudioInput.builder()
-                .name(uploadedFile.getOriginalFilename())
-                .location(location)
-                .bytes(uploadedFile.getSize())
-                .build();
-        AudioDto dto = null;
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AudioShort> save(@Validated @RequestBody AudioInput audioInput) {
         try {
-            dto = audioFileService.create(audioInput);
-            metadata.setResourceId(dto.getId());
-            songService.addSong(metadata);
+            AudioDto dto = audioFileService.create(audioInput);
             return ResponseEntity.ok(AudioShort.builder().id(dto.getId()).build());
         } catch (Exception e) {
-            log.warn("Unable process file {}", uploadedFile.getOriginalFilename(), e);
-            Optional.ofNullable(dto)
-                    .ifPresent(d -> audioFileService.delete(d.getId()));
-            storageService.delete(location);
-            throw new RuntimeException("Unable to store file", e);
+            log.warn("Unable process file {}", audioInput.getName(), e);
+            throw new RuntimeException("Unable to save file", e);
         }
     }
 
@@ -106,13 +100,21 @@ public class AudioFileController {
                 id -> audioFileService.findById(id)
                         .map(dto -> {
                             audioFileService.delete(id);
+                            audioQueueingService.deleteMessage(id);
                             removedIds.add(dto.getId());
+                            storageService.delete(dto.getLocation());
                             return dto.getLocation();
                         })
-                        .ifPresent(storageService::delete)
-
+                        .orElseThrow(() -> new NotFoundException(id + " not found media"))
         );
         return ResponseEntity.ok(Map.of("ids", removedIds));
+    }
+
+    @DeleteMapping(path = "deleteByKey")
+    ResponseEntity<?> deleteByKey(@RequestParam(name = "key") String key) {
+        audioFileService.deleteByLocation(key);
+        storageService.delete(key);
+        return ResponseEntity.ok().build();
     }
 
 }

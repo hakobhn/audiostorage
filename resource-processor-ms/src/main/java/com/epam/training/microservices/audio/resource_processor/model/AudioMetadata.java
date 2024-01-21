@@ -1,4 +1,4 @@
-package com.epam.training.microservices.audio.resources.dto;
+package com.epam.training.microservices.audio.resource_processor.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

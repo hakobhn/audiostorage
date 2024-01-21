@@ -1,7 +1,7 @@
-package com.epam.training.microservices.audio.resources.service.impl;
+package com.epam.training.microservices.audio.resource_processor.service.impl;
 
-import com.epam.training.microservices.audio.resources.dto.AudioMetadata;
-import com.epam.training.microservices.audio.resources.service.MetadataService;
+import com.epam.training.microservices.audio.resource_processor.model.AudioMetadata;
+import com.epam.training.microservices.audio.resource_processor.service.MetadataService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;

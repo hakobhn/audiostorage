@@ -12,5 +12,6 @@ public interface AudioFileService {
     AudioDto getById(long id);
     Optional<AudioDto> findById(long id);
     void delete(long id);
+    void deleteByLocation(String location);
 
 }

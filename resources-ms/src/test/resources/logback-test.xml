@@ -7,7 +7,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.epam.training.kubernetes.dockerdemo.user" level="DEBUG" />
+    <logger name="com.epam.training.microservices.audio.resources" level="DEBUG" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

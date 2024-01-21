@@ -33,5 +33,7 @@ build/
 .vscode/
 /logs
 /data
+/resource-processor-ms-ms/logs
 /resources-ms/logs
-/songs-ms-ms/logs
+/songs-ms/logs
+/storage/*

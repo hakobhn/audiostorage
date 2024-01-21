@@ -8,7 +8,7 @@
               class="ch.qos.logback.core.ConsoleAppender">
         <layout class="ch.qos.logback.classic.PatternLayout">
             <Pattern>
-                %magenta(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1.}): %msg%n%throwable
+                %magenta(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1}): %msg%n%throwable
             </Pattern>
         </layout>
     </appender>
@@ -30,17 +30,6 @@
             <pattern>%d %p %c{1.} [%t] %m%n</pattern>
         </encoder>
     </appender>
-
-
-    <!-- LOG everything at DEBUG level into console -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-    </root>
-
-    <!-- LOG everything at WARN level into log file -->
-    <root level="WARN">
-        <appender-ref ref="FILE-ROLLING" />
-    </root>
 
     <!-- LOG "com.orders.co*" at TRACE level -->
     <logger name="com.epam.training.microservices.audio.songs" level="DEBUG">

@@ -64,4 +64,9 @@ public class RestExceptionHandler {
     public ResponseEntity<?> handleNotFound(Exception ex, WebRequest request) {
         return new ResponseEntity(ex.getLocalizedMessage(), HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler({Exception.class})
+    public ResponseEntity<?> internalServer(Exception ex, WebRequest request) {
+        return new ResponseEntity(messageProvider.getMessage("http.internal.error"), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }
