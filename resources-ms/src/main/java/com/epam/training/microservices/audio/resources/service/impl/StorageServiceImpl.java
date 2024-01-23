@@ -2,15 +2,18 @@ package com.epam.training.microservices.audio.resources.service.impl;
 
 import com.epam.training.microservices.audio.resources.service.StorageService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
@@ -40,11 +43,11 @@ public class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public InputStream read(String location) {
+    public byte[] read(String location) {
         File file = new File(location);
-        try {
-            return new FileInputStream(file);
-        } catch (FileNotFoundException e) {
+        try (InputStream inputStream = new FileInputStream(file)) {
+            return IOUtils.toByteArray(inputStream);
+        } catch (IOException e) {
             log.warn("Unable to read file {}", location, e);
             throw new RuntimeException(e);
         }
@@ -54,10 +57,10 @@ public class StorageServiceImpl implements StorageService {
     public void delete(String location) {
         try {
             log.info("Trying to delete file: {}", location);
-            File audioFile = new File(location);
-            audioFile.delete();
+            Files.delete(Path.of(location));
         } catch (Exception e) {
             log.warn("Failed to delete {} file", location, e);
+            throw new RuntimeException(e);
         }
     }
 }

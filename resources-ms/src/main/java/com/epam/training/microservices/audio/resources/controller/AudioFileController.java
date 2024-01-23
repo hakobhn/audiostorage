@@ -12,7 +12,6 @@ import com.epam.training.microservices.audio.resources.service.AudioQueueingServ
 import com.epam.training.microservices.audio.resources.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,7 +37,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.epam.training.microservices.audio.resources.controller.ControllerEndpoints.RESOURCES_URL;
-import static com.epam.training.microservices.audio.resources.util.StringUtils.removeNonASCII;
+import static com.epam.training.microservices.audio.resources.util.StringUtils.encode;
 
 @Slf4j
 @RestController
@@ -56,7 +55,7 @@ public class AudioFileController {
 
         byte[] data = uploadedFile.getBytes();
 
-        String key = storageService.store(removeNonASCII(uploadedFile.getOriginalFilename()), data);
+        String key = storageService.store(encode(uploadedFile.getOriginalFilename()), data);
 
         audioQueueingService.sendMessage(new AudioMessage(uploadedFile.getOriginalFilename(), key, data));
         return new ResponseEntity<>(messageProvider.getMessage("meda.pushed.success"), HttpStatus.CREATED);
@@ -79,12 +78,11 @@ public class AudioFileController {
         AudioDto dto = audioFileService.getById(id);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         response.setContentType("audio/mpeg");
         response.setContentLength(Long.valueOf(dto.getBytes()).intValue());
-        response.setHeader("Content-Disposition", "attachment; filename=" + dto.getName());
+        response.setHeader("Content-Disposition", "attachment; filename=" + encode(dto.getName()));
 
-        return new HttpEntity<byte[]>(IOUtils.toByteArray(storageService.read(dto.getLocation())), headers);
+        return new HttpEntity<byte[]>(storageService.read(dto.getLocation()), headers);
     }
 
     @DeleteMapping(produces = MediaType.APPLICATION_JSON_VALUE)

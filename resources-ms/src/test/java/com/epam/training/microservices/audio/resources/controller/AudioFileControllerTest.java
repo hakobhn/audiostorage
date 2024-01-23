@@ -16,7 +16,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,7 +23,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(classes = ResourcesApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @SqlGroup({
         @Sql(value = "classpath:data/schema-audio.sql", executionPhase = BEFORE_TEST_METHOD),
@@ -109,12 +107,12 @@ class AudioFileControllerTest {
                 .get(RESOURCES_URL + "/1");
 
         when(storageService.read(anyString()))
-                .thenReturn(new ByteArrayInputStream("Audio file".getBytes(StandardCharsets.UTF_8)));
+                .thenReturn("Audio file".getBytes(StandardCharsets.UTF_8));
 
         // when
         mockMvc.perform(request)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
+                .andExpect(content().contentType("audio/mpeg"))
                 .andDo(print());
     }
 
