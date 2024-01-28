@@ -5,6 +5,7 @@ import com.epam.training.microservices.audio.resource_processor.model.AudioShort
 import com.epam.training.microservices.audio.resource_processor.service.ResourcesService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ResourcesServiceImpl implements ResourcesService {
@@ -46,6 +48,7 @@ public class ResourcesServiceImpl implements ResourcesService {
             CloseableHttpResponse response = httpClient.execute(post);
             return objectMapper.readValue(response.getEntity().getContent(), AudioShort.class);
         } catch (IOException e) {
+            log.warn("Unable to send audio input.", e);
             throw new RuntimeException(e);
         }
     }

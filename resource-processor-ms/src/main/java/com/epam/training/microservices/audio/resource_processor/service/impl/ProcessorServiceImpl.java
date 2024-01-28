@@ -24,7 +24,7 @@ public class ProcessorServiceImpl implements ProcessorService {
 
     @Override
     public void processAudioFile(AudioMessage message) {
-        log.info("Received message {}", message.getLocation());
+        log.info("Processing message {}", message.getLocation());
         byte[] data = message.getData();
         if (!metadataService.detectContentType(data).equalsIgnoreCase("audio/mpeg")) {
             resourcesService.delete(message.getLocation());
@@ -39,9 +39,10 @@ public class ProcessorServiceImpl implements ProcessorService {
                     .bytes(data.length)
                     .build());
             metadata.setResourceId(audioShort.getId());
+            log.info("Sending add new song request to songs microservice.");
             songService.addSong(metadata);
         } catch (Exception e) {
-            log.warn("Unable to process file {}", message.getName());
+            log.warn("Unable to process file {}", message.getName(), e);
             resourcesService.delete(message.getLocation());
         }
 
@@ -49,6 +50,10 @@ public class ProcessorServiceImpl implements ProcessorService {
 
     @Override
     public void deleteAudioFile(Long resourceId) {
-        songService.deleteSong(resourceId);
+        try {
+            songService.deleteSong(resourceId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -16,11 +16,11 @@ public class AudioConsumer {
 
     @RabbitListener(queues = "${audio.rabbitmq.add.queue}")
     public void consume(AudioMessage message) {
-        log.info("Received message {}", message.getLocation());
+        log.info("Received new message {} location {}", message.getName(), message.getLocation());
         try {
             processService.processAudioFile(message);
         } catch (Exception e) {
-            log.warn("Not valid audio file with location {}", message.getLocation());
+            log.error("Not valid audio file with location {}", message.getLocation());
         }
     }
 

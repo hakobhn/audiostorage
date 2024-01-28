@@ -5,6 +5,7 @@ import com.epam.training.microservices.audio.resource_processor.service.SongServ
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
@@ -38,12 +39,17 @@ public class SongServiceImpl implements SongService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public void addSong(AudioMetadata metadata) throws IOException {
+    public void addSong(AudioMetadata metadata) throws Exception {
         HttpPost post = new HttpPost(baseUri + SONGS_URL);
         post.addHeader("content-type", "application/json");
         post.setEntity(new StringEntity(objectMapper.writeValueAsString(metadata)));
 
-        httpClient.execute(post);
+        try(CloseableHttpResponse response = httpClient.execute(post)) {
+            log.info("Song sent response {}", response.getStatusLine());
+        } catch (Exception e) {
+            log.warn("Unable to store new song in songs microservice");
+            throw e;
+        }
     }
 
     @Override
@@ -53,17 +59,17 @@ public class SongServiceImpl implements SongService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public void deleteSong(Long resourceId) {
-        try {
-            HttpDelete delete = new HttpDelete(baseUri + SONGS_DELETE_BY_RESOURCE_URL);
-            delete.setURI(new URIBuilder(delete.getURI())
-                    .addParameter("resourceId", String.valueOf(resourceId))
-                    .build());
+    public void deleteSong(Long resourceId) throws Exception {
+        HttpDelete delete = new HttpDelete(baseUri + SONGS_DELETE_BY_RESOURCE_URL);
+        delete.setURI(new URIBuilder(delete.getURI())
+                .addParameter("resourceId", String.valueOf(resourceId))
+                .build());
 
-            httpClient.execute(delete);
+        try(CloseableHttpResponse response = httpClient.execute(delete)) {
+            log.info("Song delete request sent response {}", response.getStatusLine());
         } catch (Exception e) {
             log.warn("Unable to delete song.", e);
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 

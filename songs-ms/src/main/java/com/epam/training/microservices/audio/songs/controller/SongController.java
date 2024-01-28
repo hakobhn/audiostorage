@@ -36,6 +36,7 @@ public class SongController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<SongShort> create(@Valid @RequestBody SongDto songDto) {
+        log.info("Received add new song request.");
         songDto = songService.create(songDto);
         return ResponseEntity.ok(new SongShort(songDto.getId()));
     }

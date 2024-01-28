@@ -8,6 +8,7 @@ import com.epam.training.microservices.audio.songs.dto.SongShort;
 import com.epam.training.microservices.audio.songs.mapper.SongMapper;
 import com.epam.training.microservices.audio.songs.service.SongService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,6 +19,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.UUID;
 
 import static com.epam.training.microservices.audio.songs.controller.ControllerEndpoints.SONGS_URL;
@@ -49,8 +53,16 @@ class SongControllerTests {
     @MockBean
     private SongRepository songRepository;
 
+    @BeforeEach
+    public void setUp() {
+        Song songEntity = new Song();
+        songEntity.setId(UUID.randomUUID().toString());
+        songEntity.setName("Dummy song");
+        when(songRepository.save(any(Song.class))).thenReturn(songEntity);
+    }
+
     @Test
-    void shouldAddNewSong() throws Exception {
+    void shouldSuccessfullyAddNewSongFromObject() throws Exception {
         // given
         SongDto songDto = new SongDto();
         songDto.setResourceId(1L);
@@ -61,9 +73,6 @@ class SongControllerTests {
         songDto.setYear("2023");
 
         // when
-        Song songEntity = new Song();
-        songEntity.setId(UUID.randomUUID().toString());
-        when(songRepository.save(any(Song.class))).thenReturn(songEntity);
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders
                         .post(SONGS_URL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -77,6 +86,26 @@ class SongControllerTests {
         // then
         assertThat(actual.getId()).isNotBlank();
         verify(songRepository, times(1)).save(any(Song.class));
+    }
+
+    @Test
+    void shouldSuccessfullyAddNewSongFromJsonString() throws Exception {
+        ClassLoader classLoader = getClass().getClassLoader();
+        String messageStr = Files.readString(Paths.get(Objects.requireNonNull(
+                classLoader.getResource("input/sample-song.json")).toURI()));
+
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
+                        .post(SONGS_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(messageStr))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        SongShort actual = objectMapper.readValue(result.getResponse().getContentAsString(), SongShort.class);
+
+        // then
+        assertThat(actual.getId()).isNotBlank();
     }
 
     @Test
