@@ -16,8 +16,6 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -2,6 +2,7 @@ package com.epam.training.microservices.audio.resources.controller;
 
 import com.epam.training.microservices.audio.resources.ResourcesApplication;
 import com.epam.training.microservices.audio.resources.dto.AudioMessage;
+import com.epam.training.microservices.audio.resources.dto.AudioShort;
 import com.epam.training.microservices.audio.resources.service.AudioFileService;
 import com.epam.training.microservices.audio.resources.service.AudioQueueingService;
 import com.epam.training.microservices.audio.resources.service.StorageService;
@@ -11,11 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,6 +29,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Objects;
 
 import static com.epam.training.microservices.audio.resources.controller.ControllerEndpoints.RESOURCES_URL;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -59,6 +64,7 @@ class AudioFileControllerTest {
     @Autowired
     private AudioFileService audioFileService;
     @MockBean
+    @Qualifier("AwsStorageService")
     private StorageService storageService;
     @MockBean
     private AudioQueueingService audioQueueingService;
@@ -98,6 +104,31 @@ class AudioFileControllerTest {
         assertThat(value.getName()).isBlank();
         assertThat(value.getLocation()).isEqualTo("dummy/path");
         assertThat(value.getData()).isNotNull();
+    }
+
+    @Test
+    void shouldSaveAudioData() throws Exception {
+        // given
+        ClassLoader classLoader = getClass().getClassLoader();
+        String inputStr = Files.readString(Paths.get(Objects.requireNonNull(
+                classLoader.getResource("json/sample-audio-input.json")).toURI()));
+
+        RequestBuilder request = MockMvcRequestBuilders
+                .post(RESOURCES_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(inputStr);
+
+        // when
+        MvcResult result = mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andDo(print())
+                .andReturn();
+
+        //then
+        AudioShort actual = objectMapper.readValue(result.getResponse().getContentAsString(), AudioShort.class);
+
+        assertThat(actual.getId()).isPositive();
     }
 
     @Test

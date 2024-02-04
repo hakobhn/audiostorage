@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
-@Service
+@Service("FsStorageService")
 public class StorageServiceImpl implements StorageService {
 
     private static final DateTimeFormatter timeStampPattern = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");

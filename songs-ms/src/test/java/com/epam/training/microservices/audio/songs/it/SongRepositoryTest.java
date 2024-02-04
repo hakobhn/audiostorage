@@ -25,14 +25,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.event.annotation.AfterTestClass;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 
 import java.util.List;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@EnabledIf(expression = "#{environment.matchesProfiles('!prod')}", loadContext = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @AutoConfigureDataMongo
 @SpringBootTest(classes = SongsApplication.class)

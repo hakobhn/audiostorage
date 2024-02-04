@@ -10,12 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Commit;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@EnabledIf(expression = "#{environment.matchesProfiles('!prod')}", loadContext = true)
 @SpringBootTest(classes = ResourcesApplication.class)
 class AudioDaoIntegrationTest implements PostgresTestContainer {
 

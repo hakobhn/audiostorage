@@ -21,7 +21,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
@@ -37,7 +36,6 @@ import static org.mockserver.model.HttpResponse.response;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 import static org.testcontainers.shaded.org.hamcrest.core.Is.is;
 
-@EnabledIf(expression = "#{environment.matchesProfiles('!prod')}", loadContext = true)
 @SpringBootTest
 @ExtendWith(OutputCaptureExtension.class)
 class MessagingIntegrationTests implements RabbitTestContainer {

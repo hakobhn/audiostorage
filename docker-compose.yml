@@ -8,31 +8,46 @@ services:
     restart: on-failure
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       STORAGE_HOME: /home/storage
+      AWS_ENDPOINT_URL: s3.localhost.localstack.cloud:4566
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USER: guest
-      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_RABBITMQ_USER: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audio
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ./storage:/home/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - audioNetwork
     depends_on:
       - rabbitmq
       - postgres
+      - localstack
 
   processor-ms:
     build:
       context: ./resource-processor-ms
     container_name: resource-processor-ms
     restart: on-failure
+    env_file:
+      - .env
     environment:
+      RESOURCES_MS_BASE_URI: http://resources-ms:8080
+      SONGS_MS_BASE_URI: http://songs-ms:8081
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USER: guest
-      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_RABBITMQ_USER: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - audioNetwork
     depends_on:
       - rabbitmq
       - resources-ms
@@ -46,37 +61,73 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USER: guest
-      SPRING_RABBITMQ_PASSWORD: guest
       SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/songs
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - audioNetwork
     depends_on:
-      - rabbitmq
       - mongodb
+
+  localstack:
+    container_name: s3.localhost.localstack.cloud
+    image: localstack/localstack
+    hostname: s3.localhost.localstack.cloud
+    ports:
+      - "4566-4599:4566-4599"
+    env_file:
+      - .env
+    environment:
+      - DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_REGION=${AWS_DEFAULT_REGION}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - SERVICES=s3
+      - DEBUG=${DEBUG:-0}
+      - DATA_DIR=${DATA_DIR:-./data/localstack/data}./data/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOCALSTACK_HOST=s3.localhost.localstack.cloud
+      - HOSTNAME_EXTERNAL=s3.localhost.localstack.cloud
+      - USE_SSL=0
+      - DISABLE_CORS_CHECKS=1
+    networks:
+      - audioNetwork
+    volumes:
+      - ${LOCALSTACK_VOLUME_DIR:-./data/localstack/volume}:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./aws/setup-s3.sh:/etc/localstack/init/ready.d/init-aws.sh
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
+    env_file:
+      - .env
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
+    networks:
+      - audioNetwork
 
   postgres:
     image: postgres:14.1-alpine
     container_name: postgres
     restart: always
+    env_file:
+      - .env
     environment:
       - POSTGRES_DB=audio
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
       - '5442:5432'
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - audioNetwork
 
   mongodb:
     image: mongo:latest
@@ -84,16 +135,24 @@ services:
     restart: always
     ports:
       - '27027:27017'
+    env_file:
+      - .env
+    environment:
+      - MONGODB_INITSCRIPTS_DIR=/docker-entrypoint-initdb.d
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
     volumes:
       - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
       - ./data/mongodb/data:/data/db
-    environment:
-      - MONGODB_INITSCRIPTS_DIR=/docker-entrypoint-initdb.d
-      - MONGODB_USERNAME=demo
-      - MONGODB_PASSWORD=audio123!
-      - MONGODB_DATABASE=songs
+    networks:
+      - audioNetwork
 
 # Volumes
 volumes:
   data:
     driver: local
+
+#Network
+networks:
+  audioNetwork:

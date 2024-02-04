@@ -12,6 +12,8 @@ import com.epam.training.microservices.audio.resources.service.AudioQueueingServ
 import com.epam.training.microservices.audio.resources.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -48,7 +50,9 @@ public class AudioFileController {
     private final LocalizedMessageProvider messageProvider;
     private final AudioQueueingService audioQueueingService;
     private final AudioFileService audioFileService;
-    private final StorageService storageService;
+    @Autowired
+    @Qualifier("AwsStorageService")
+    private StorageService storageService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> upload(@RequestParam("file") MultipartFile uploadedFile) throws IOException {
