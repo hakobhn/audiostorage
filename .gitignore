@@ -1,4 +1,4 @@
-songs-ms/HELP.md
+songs/HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -33,7 +33,7 @@ build/
 .vscode/
 /logs
 /data
-/resource-processor-ms-ms/logs
-/resources-ms/logs
-/songs-ms/logs
+/resource-processor/logs
+/resources/logs
+/songs/logs
 /storage/*

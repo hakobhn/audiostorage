@@ -1,13 +1,57 @@
-version: '3.6'
+version: '3.7'
 
 services:
-  resources-ms:
-    build:
-      context: ./resources-ms
-    container_name: resources-ms
-    restart: on-failure
+
+  config-service:
+    build: ./config-service
+    container_name: config-service
+    ports:
+      - "8888:8888"
+    networks:
+      - audioNetwork
+
+  discovery-service:
+    build: ./discovery-service
+    container_name: discovery-service
+    ports:
+      - "9000:9000"
+    networks:
+      - audioNetwork
+    depends_on:
+      - config-service
+
+  api-gateway:
+    build: ./api-gateway
     ports:
       - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      SPRING_PROFILES_ACTIVE: path
+      SPRING_CLOUD_GATEWAY_ROUTES[0]_ID: resources-service
+      SPRING_CLOUD_GATEWAY_ROUTES[0]_URI: http://resources:8081
+      SPRING_CLOUD_GATEWAY_ROUTES[0]_PREDICATES[0]: Path= /resources/**
+      SPRING_CLOUD_GATEWAY_ROUTES[0]_FILTERS[0]: StripPrefix=0
+      SPRING_CLOUD_GATEWAY_ROUTES[1]_ID: songs-service
+      SPRING_CLOUD_GATEWAY_ROUTES[1]_URI: http://songs:8082
+      SPRING_CLOUD_GATEWAY_ROUTES[1]_PREDICATES[0]: Path= /songs/**
+      SPRING_CLOUD_GATEWAY_ROUTES[1]_FILTERS[0]: StripPrefix=0
+    networks:
+      - audioNetwork
+    depends_on:
+      - config-service
+      - discovery-service
+      - resources
+      - processor
+      - songs
+
+  resources:
+    build:
+      context: ./resources
+    container_name: resources
+    restart: on-failure
+    ports:
+      - "8081:8081"
     env_file:
       - .env
     environment:
@@ -20,26 +64,30 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audio
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
     volumes:
       - ./storage:/home/storage
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - audioNetwork
     depends_on:
+      - config-service
+      - discovery-service
       - rabbitmq
       - postgres
       - localstack
 
-  processor-ms:
+  processor:
     build:
-      context: ./resource-processor-ms
-    container_name: resource-processor-ms
+      context: ./resource-processor
+    container_name: resource-processor
     restart: on-failure
     env_file:
       - .env
     environment:
-      RESOURCES_MS_BASE_URI: http://resources-ms:8080
-      SONGS_MS_BASE_URI: http://songs-ms:8081
+      RESOURCES_MS_BASE_URI: http://resources:8081
+      SONGS_MS_BASE_URI: http://songs:8082
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USER: ${RABBITMQ_USER}
@@ -49,17 +97,19 @@ services:
     networks:
       - audioNetwork
     depends_on:
+      - config-service
+      - discovery-service
       - rabbitmq
-      - resources-ms
-      - songs-ms
+      - resources
+      - songs
 
-  songs-ms:
+  songs:
     build:
-      context: ./songs-ms
-    container_name: songs-ms
+      context: ./songs
+    container_name: songs
     restart: on-failure
     ports:
-      - "8081:8081"
+      - "8082:8082"
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/songs
     volumes:
@@ -67,6 +117,8 @@ services:
     networks:
       - audioNetwork
     depends_on:
+      - config-service
+      - discovery-service
       - mongodb
 
   localstack:
@@ -94,9 +146,9 @@ services:
     networks:
       - audioNetwork
     volumes:
+      - ./app-init/aws/setup-s3.sh:/etc/localstack/init/ready.d/init-aws.sh
       - ${LOCALSTACK_VOLUME_DIR:-./data/localstack/volume}:/var/lib/localstack
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./aws/setup-s3.sh:/etc/localstack/init/ready.d/init-aws.sh
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -124,10 +176,24 @@ services:
     ports:
       - '5442:5432'
     volumes:
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./data/postgres:/var/lib/postgresql/data
+      - ./app-init/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pd_data:/var/lib/postgresql/data
     networks:
       - audioNetwork
+
+  pgadmin4:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=audio@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=audio
+      - PGADMIN_LISTEN_ADDRESS=0.0.0.0
+    ports:
+      - "5050:80"
+    volumes:
+      - ./data/postgres/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
 
   mongodb:
     image: mongo:latest
@@ -143,14 +209,18 @@ services:
       - MONGODB_PASSWORD=${MONGODB_PASSWORD}
       - MONGODB_DATABASE=${MONGODB_DATABASE}
     volumes:
-      - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-      - ./data/mongodb/data:/data/db
+      - ./app-init/mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - mongo_data:/data/db
     networks:
       - audioNetwork
 
 # Volumes
 volumes:
   data:
+    driver: local
+  pd_data:
+    driver: local
+  mongo_data:
     driver: local
 
 #Network

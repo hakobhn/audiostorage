@@ -7,7 +7,7 @@
 	},
 	"item": [
 		{
-			"name": "http://localhost:8080/resources",
+			"name": "Add resources",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -17,29 +17,79 @@
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/C:/temp_data/file_example_MP3_1MG.mp3"
+							"src": "/C:/temp_data/bohemian_rhapsody_22. Queen - The Show Must Go On.mp3"
 						}
 					]
 				},
-				"url": "http://localhost:8080/resources"
+				"url": "{{base_url}}/resources"
 			},
 			"response": []
 		},
 		{
-			"name": "http://localhost:8080/resources/7",
+			"name": "Get resources",
 			"request": {
 				"method": "GET",
 				"header": [],
-				"url": "http://localhost:8080/resources/7"
+				"url": "{{base_url}}/resources/2"
 			},
 			"response": []
 		},
 		{
-			"name": "http://localhost:8080/resources/8",
+			"name": "Delete resources",
 			"request": {
 				"method": "DELETE",
 				"header": [],
-				"url": "http://localhost:8080/resources/8"
+				"url": {
+					"raw": "{{base_url}}/resources?id=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"resources"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get song by id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{base_url}}/songs/65c8e8c54bf219777be8ab81"
+			},
+			"response": []
+		},
+		{
+			"name": "Add song",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"We are the champions\",\r\n    \"artist\": \"Queen\",\r\n    \"album\": \"News of the world\",\r\n    \"length\": \"2:59\",\r\n    \"resourceId\": 123,\r\n    \"year\": 1977\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{base_url}}/songs"
+			},
+			"response": []
+		},
+		{
+			"name": "Songs page",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{base_url}}/songs/list"
 			},
 			"response": []
 		}
