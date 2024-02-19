@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 public class AudioMessage {
     private String name;
     private String location;
+    private Long detailsId;
     private byte[] data;
 }

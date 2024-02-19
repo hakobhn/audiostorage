@@ -23,6 +23,7 @@
          <module>resource-processor</module>
 		 <module>resources</module>
 		 <module>songs</module>
+		 <module>storage</module>
     </modules>
 
 </project>

@@ -57,6 +57,7 @@ services:
     environment:
       STORAGE_HOME: /home/storage
       AWS_ENDPOINT_URL: s3.localhost.localstack.cloud:4566
+      STORAGES_MS_BASE_URI: http://storages:8083
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USER: ${RABBITMQ_USER}
@@ -88,6 +89,7 @@ services:
     environment:
       RESOURCES_MS_BASE_URI: http://resources:8081
       SONGS_MS_BASE_URI: http://songs:8082
+      STORAGES_MS_BASE_URI: http://storages:8083
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USER: ${RABBITMQ_USER}
@@ -121,9 +123,31 @@ services:
       - discovery-service
       - mongodb
 
+  storages:
+    build:
+      context: ./storage
+    container_name: storages
+    restart: on-failure
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audio
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
+      SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - audioNetwork
+    depends_on:
+      - config-service
+      - discovery-service
+      - postgres
+
   localstack:
     container_name: s3.localhost.localstack.cloud
-    image: localstack/localstack
+    image: localstack/localstack:3.0.2
     hostname: s3.localhost.localstack.cloud
     ports:
       - "4566-4599:4566-4599"
@@ -200,7 +224,7 @@ services:
     container_name: mongodb
     restart: always
     ports:
-      - '27027:27017'
+      - "27027:27017"
     env_file:
       - .env
     environment:

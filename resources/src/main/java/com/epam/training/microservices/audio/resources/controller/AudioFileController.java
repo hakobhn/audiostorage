@@ -5,15 +5,18 @@ import com.epam.training.microservices.audio.resources.dto.AudioDto;
 import com.epam.training.microservices.audio.resources.dto.AudioInput;
 import com.epam.training.microservices.audio.resources.dto.AudioMessage;
 import com.epam.training.microservices.audio.resources.dto.AudioShort;
+import com.epam.training.microservices.audio.resources.dto.StorageDetailsShort;
 import com.epam.training.microservices.audio.resources.exception.BadRequestException;
 import com.epam.training.microservices.audio.resources.exception.NotFoundException;
 import com.epam.training.microservices.audio.resources.service.AudioFileService;
 import com.epam.training.microservices.audio.resources.service.AudioQueueingService;
+import com.epam.training.microservices.audio.resources.service.StorageDetailsService;
 import com.epam.training.microservices.audio.resources.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,9 +54,13 @@ public class AudioFileController {
     private final LocalizedMessageProvider messageProvider;
     private final AudioQueueingService audioQueueingService;
     private final AudioFileService audioFileService;
+    private final StorageDetailsService storageDetailsService;
     @Autowired
     @Qualifier("AwsStorageService")
     private StorageService storageService;
+
+    @Value("${aws.storage.bucket}")
+    private String bucketName;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> upload(@RequestParam("file") MultipartFile uploadedFile) throws IOException {
@@ -61,7 +69,10 @@ public class AudioFileController {
 
         String key = storageService.store(encode(uploadedFile.getOriginalFilename()), data);
 
-        audioQueueingService.sendMessage(new AudioMessage(uploadedFile.getOriginalFilename(), key, data));
+        StorageDetailsShort detailsShort = storageDetailsService.saveStaging(bucketName, key);
+
+        audioQueueingService.sendMessage(new AudioMessage(uploadedFile.getOriginalFilename(),
+                key, detailsShort.getId(), data));
         return new ResponseEntity<>(messageProvider.getMessage("meda.pushed.success"), HttpStatus.CREATED);
     }
 
@@ -87,6 +98,12 @@ public class AudioFileController {
         response.setHeader("Content-Disposition", "attachment; filename=" + encode(dto.getName()));
 
         return new HttpEntity<byte[]>(storageService.read(dto.getLocation()), headers);
+    }
+
+    @PatchMapping(value = "/makePermanent/{id}")
+    public ResponseEntity<?> makePermanent(@PathVariable("id") long id) {
+        storageDetailsService.makePermanent(id);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping(produces = MediaType.APPLICATION_JSON_VALUE)

@@ -1,0 +1,5 @@
+{
+  "type":"PERMANENT",
+  "bucket":"bucket_name",
+  "path":"/files"
+}

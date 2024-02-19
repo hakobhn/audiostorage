@@ -11,5 +11,6 @@ public class AudioInput {
     private String name;
     @NotNull(message = "Location is required")
     private String location;
+    private Long detailsId;
     private long bytes;
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
@@ -27,6 +28,7 @@ public class ResourcesServiceImpl implements ResourcesService {
 
     private static final String RESOURCES_URL = "/resources";
     private static final String RESOURCES_DELETE_BY_KEY_URL = RESOURCES_URL + "/deleteByKey";
+    private static final String RESOURCES_MAKE_PERMANENT_URL = RESOURCES_URL + "/makePermanent";
 
     private final String serviceId;
 
@@ -90,6 +92,18 @@ public class ResourcesServiceImpl implements ResourcesService {
             httpClient.execute(delete);
         } catch (Exception e) {
             log.warn("Unable to delete by key {}", key, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void makePermanent(Long id) {
+        try {
+            HttpPatch patch = new HttpPatch(serviceUri + RESOURCES_MAKE_PERMANENT_URL + "/" + id);
+
+            httpClient.execute(patch);
+        } catch (Exception e) {
+            log.warn("Unable to make permanent storage with id {}", id, e);
             throw new RuntimeException(e);
         }
     }

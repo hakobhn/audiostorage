@@ -33,7 +33,10 @@ build/
 .vscode/
 /logs
 /data
+/api-gateway/logs
 /resource-processor/logs
 /resources/logs
 /songs/logs
-/storage/*
+/config-service/logs
+/discovery-service/logs
+/storage/logs

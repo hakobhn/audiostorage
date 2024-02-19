@@ -9,6 +9,7 @@ import com.epam.training.microservices.audio.resource_processor.service.Metadata
 import com.epam.training.microservices.audio.resource_processor.service.ProcessorService;
 import com.epam.training.microservices.audio.resource_processor.service.ResourcesService;
 import com.epam.training.microservices.audio.resource_processor.service.SongService;
+import com.epam.training.microservices.audio.resource_processor.service.StorageDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class ProcessorServiceImpl implements ProcessorService {
     private final MetadataService metadataService;
     private final SongService songService;
     private final ResourcesService resourcesService;
+    private final StorageDetailsService storageDetailsService;
 
     @Override
     public void processAudioFile(AudioMessage message) {
@@ -33,11 +35,15 @@ public class ProcessorServiceImpl implements ProcessorService {
 
         try {
             AudioMetadata metadata = metadataService.extract(message.getData());
+
+            storageDetailsService.makePermanent(message.getDetailsId());
+
             AudioShort audioShort = resourcesService.save(AudioInput.builder()
                     .name(message.getName())
                     .location(message.getLocation())
                     .bytes(data.length)
                     .build());
+
             metadata.setResourceId(audioShort.getId());
             log.info("Sending add new song request to songs microservice.");
             songService.addSong(metadata);
