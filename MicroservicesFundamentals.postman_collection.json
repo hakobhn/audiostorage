@@ -10,14 +10,20 @@
 			"name": "Add resources",
 			"request": {
 				"method": "POST",
-				"header": [],
+				"header": [
+					{
+						"key": "x-current-trace-id",
+						"value": "{{$guid}}",
+						"type": "text"
+					}
+				],
 				"body": {
 					"mode": "formdata",
 					"formdata": [
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/C:/temp_data/bohemian_rhapsody_22. Queen - The Show Must Go On.mp3"
+							"src": "/C:/temp_data/Vanna-Rainelle---YAD-Яд-ENGLISH-VERSION.mp3"
 						}
 					]
 				},
@@ -30,7 +36,7 @@
 			"request": {
 				"method": "GET",
 				"header": [],
-				"url": "{{base_url}}/resources/2"
+				"url": "{{base_url}}/resources/1"
 			},
 			"response": []
 		},
