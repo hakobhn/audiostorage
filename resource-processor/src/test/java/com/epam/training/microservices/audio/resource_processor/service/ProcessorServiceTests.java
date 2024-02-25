@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,12 +23,14 @@ import java.nio.file.Files;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
-public class ProcessorServiceTests {
+@ActiveProfiles("test")
+class ProcessorServiceTests {
 
     @Autowired
     private ProcessorService processorService;
@@ -65,17 +68,17 @@ public class ProcessorServiceTests {
         audioMessage.setData(data);
 
         // when
-        when(resourcesService.save(any(AudioInput.class))).thenReturn(new AudioShort(1L));
-        processorService.processAudioFile(audioMessage);
+        when(resourcesService.save(any(AudioInput.class), anyString())).thenReturn(new AudioShort(1L));
+        processorService.processAudioFile(audioMessage, "testTraceId");
 
         // then
-        verify(resourcesService).save(audioInputCaptor.capture());
+        verify(resourcesService).save(audioInputCaptor.capture(), anyString());
         AudioInput inputValue = audioInputCaptor.getValue();
         assertThat(inputValue.getName()).isEqualTo(audioMessage.getName());
         assertThat(inputValue.getLocation()).isEqualTo(audioMessage.getLocation());
         assertThat(inputValue.getBytes()).isEqualTo(audioMessage.getData().length);
 
-        verify(songService).addSong(audioMetadataCaptor.capture());
+        verify(songService).addSong(audioMetadataCaptor.capture(), anyString());
         AudioMetadata metadataValue = audioMetadataCaptor.getValue();
         assertThat(metadataValue.getResourceId()).isEqualTo(1L);
         assertThat(metadataValue.getName()).isEqualTo("Vanna Rainelle - YAD Яд ENGLISH VERSION(musicdownload.cc)");
@@ -95,11 +98,11 @@ public class ProcessorServiceTests {
 
         // when
         Exception exception = assertThrows(UnsupportedFileFormatException.class, () -> {
-            processorService.processAudioFile(audioMessage);
+            processorService.processAudioFile(audioMessage, "testTraceId");
         });
 
         // then
         assertThat(exception.getMessage()).isEqualTo("Not audio/mpeg file submitted");
-        verify(resourcesService, times(1)).delete(audioMessage.getLocation());
+        verify(resourcesService, times(1)).delete(audioMessage.getLocation(), "testTraceId");
     }
 }

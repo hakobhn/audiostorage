@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+    <springProperty scope="context" name="logHost" source="logstash.host" defaultValue="localhost:4560"/>
+    <springProperty scope="context" name="logstashEnabled" source="logstash.enabled" defaultValue="false"/>
+
     <include
-            resource="org/springframework/boot/logging/logback/defaults.xml" />
+            resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
     <appender name="CONSOLE"
               class="ch.qos.logback.core.ConsoleAppender">
@@ -14,10 +18,10 @@
     </appender>
 
     <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/api-gateway/app.log</file>
+        <file>logs/${appName}/app.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>logs/api-gateway/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>logs/${appName}/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <!-- each archived file, size max 10MB -->
             <maxFileSize>10MB</maxFileSize>
             <!-- total size of all archive files, if total size > 2GB, it will delete old archived file -->
@@ -27,20 +31,63 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%d %p %c{1} [%t] %m%n</pattern>
+            <Pattern>%d %p %C{1.} [%t] %m%n</Pattern>
         </encoder>
     </appender>
 
-    <!-- LOG "com.orders.co*" at TRACE level -->
-    <logger name="com.epam.training.microservices.audio.config" level="DEBUG">
-        <appender-ref ref="FILE-ROLLING" />
+    <if condition='property("logstashEnabled").equals("true")'>
+        <then>
+
+            <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+                <destination>${logHost}</destination>
+                <encoder charset="UTF-8" class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                    <providers>
+                        <timestamp>
+                            <timeZone>UTC</timeZone>
+                        </timestamp>
+                        <pattern>
+                            <pattern>
+                                {
+                                "logLevel": "%level",
+                                "serviceName": "${springAppName:-}",
+                                "pid": "${PID:-}",
+                                "thread": "%thread",
+                                "class": "%logger{40}",
+                                "rest": "%message"
+                                }
+                            </pattern>
+                        </pattern>
+                    </providers>
+                </encoder>
+
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <includeCallerData>true</includeCallerData>
+                </encoder>
+            </appender>
+
+            <logger name="com.epam.training" level="INFO">
+                <appender-ref ref="LOGSTASH"/>
+            </logger>
+            <!-- LOG spring -->
+            <logger name="org.springframework" level="WARN">
+                <appender-ref ref="LOGSTASH"/>
+            </logger>
+
+        </then>
+    </if>
+
+    <logger name="com.epam.training" level="WARN">
+        <appender-ref ref="FILE-ROLLING"/>
+    </logger>
+
+    <!-- LOG "com.epam.training*" at DEBUG level -->
+    <logger name="com.epam.training" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE" />
     </logger>
 
-    <!-- LOG spring -->
-    <logger name="org.springframework" level="INFO">
+    <!-- LOG everything at INFO level -->
+    <root level="INFO">
         <appender-ref ref="CONSOLE" />
-    </logger>
-
+    </root>
 
 </configuration>

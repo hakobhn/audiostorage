@@ -5,6 +5,7 @@ import com.epam.training.microservices.audio.storage.exception.BadRequestExcepti
 import com.epam.training.microservices.audio.storage.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.conn.HttpHostConnectException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handle(MethodArgumentNotValidException ex) {
-        log.warn("handling filed validation exception: {}", ex.getMessage());
+        log.warn("handling filed validation exception.", ex);
         Map<String, String> fieldErrors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -42,17 +43,32 @@ public class RestExceptionHandler {
 
     @ExceptionHandler({BadRequestException.class})
     public ResponseEntity<?> handleBadRequest(Exception ex, WebRequest request) {
+        log.warn("Bad request exception", ex);
         return new ResponseEntity(ex.getLocalizedMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler({HttpClientErrorException.class})
     public ResponseEntity<?> handleRemoteServiceExceptions(Exception ex, WebRequest request) {
+        log.warn("Http client exception", ex);
         HttpStatus status = HttpStatus.valueOf(((HttpClientErrorException)ex).getRawStatusCode());
         return new ResponseEntity(ex.getLocalizedMessage(), status);
     }
 
+    @ExceptionHandler({HttpHostConnectException.class})
+    public ResponseEntity<?> handleRemoteServiceNotAvailable(Exception ex, WebRequest request) {
+        log.warn("Http host connection exception", ex);
+        return new ResponseEntity(ex.getLocalizedMessage(), HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
     @ExceptionHandler({NotFoundException.class})
     public ResponseEntity<?> handleNotFound(Exception ex, WebRequest request) {
+        log.warn("Not found exception", ex);
         return new ResponseEntity(ex.getLocalizedMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler({Exception.class})
+    public ResponseEntity<?> internalServer(Exception ex, WebRequest request) {
+        log.error("Internal server error", ex);
+        return new ResponseEntity("Oops, something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

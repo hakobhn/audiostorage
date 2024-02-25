@@ -5,6 +5,9 @@ services:
   config-service:
     build: ./config-service
     container_name: config-service
+    environment:
+      LOGSTASH_HOST: logstash:4560
+      LOGSTASH_ENABLED: true
     ports:
       - "8888:8888"
     networks:
@@ -13,6 +16,9 @@ services:
   discovery-service:
     build: ./discovery-service
     container_name: discovery-service
+    environment:
+      LOGSTASH_HOST: logstash:4560
+      LOGSTASH_ENABLED: true
     ports:
       - "9000:9000"
     networks:
@@ -36,6 +42,8 @@ services:
       SPRING_CLOUD_GATEWAY_ROUTES[1]_URI: http://songs:8082
       SPRING_CLOUD_GATEWAY_ROUTES[1]_PREDICATES[0]: Path= /songs/**
       SPRING_CLOUD_GATEWAY_ROUTES[1]_FILTERS[0]: StripPrefix=0
+      LOGSTASH_HOST: logstash:4560
+      LOGSTASH_ENABLED: true
     networks:
       - audioNetwork
     depends_on:
@@ -44,6 +52,7 @@ services:
       - resources
       - processor
       - songs
+      - logstash
 
   resources:
     build:
@@ -55,6 +64,7 @@ services:
     env_file:
       - .env
     environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
       STORAGE_HOME: /home/storage
       AWS_ENDPOINT_URL: s3.localhost.localstack.cloud:4566
       STORAGES_MS_BASE_URI: http://storages:8083
@@ -65,8 +75,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audio
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
       SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      LOGSTASH_HOST: logstash:4560
+      LOGSTASH_ENABLED: true
     volumes:
       - ./storage:/home/storage
       - /var/run/docker.sock:/var/run/docker.sock
@@ -78,6 +89,7 @@ services:
       - rabbitmq
       - postgres
       - localstack
+      - logstash
 
   processor:
     build:
@@ -87,6 +99,7 @@ services:
     env_file:
       - .env
     environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
       RESOURCES_MS_BASE_URI: http://resources:8081
       SONGS_MS_BASE_URI: http://songs:8082
       STORAGES_MS_BASE_URI: http://storages:8083
@@ -94,6 +107,8 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USER: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      LOGSTASH_HOST: logstash:4560
+      LOGSTASH_ENABLED: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -104,6 +119,7 @@ services:
       - rabbitmq
       - resources
       - songs
+      - logstash
 
   songs:
     build:
@@ -113,7 +129,10 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/songs
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/songs
+      LOGSTASH_HOST: logstash:4560
+      LOGSTASH_ENABLED: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -121,7 +140,8 @@ services:
     depends_on:
       - config-service
       - discovery-service
-      - mongodb
+      - mongo
+      - logstash
 
   storages:
     build:
@@ -136,6 +156,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
       SPRING_CLOUD_CONFIG_URI: http://config-service:8888
+      LOGSTASH_HOST: logstash:4560
+      LOGSTASH_ENABLED: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -144,10 +166,11 @@ services:
       - config-service
       - discovery-service
       - postgres
+      - logstash
 
   localstack:
     container_name: s3.localhost.localstack.cloud
-    image: localstack/localstack:3.0.2
+    image: localstack/localstack
     hostname: s3.localhost.localstack.cloud
     ports:
       - "4566-4599:4566-4599"
@@ -173,6 +196,12 @@ services:
       - ./app-init/aws/setup-s3.sh:/etc/localstack/init/ready.d/init-aws.sh
       - ${LOCALSTACK_VOLUME_DIR:-./data/localstack/volume}:/var/lib/localstack
       - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: curl http://localhost:4566 || exit 1
+      interval: 20s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -184,6 +213,9 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "15692:15692"
+    volumes:
+      - ./app-init/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
     networks:
       - audioNetwork
 
@@ -219,9 +251,9 @@ services:
     depends_on:
       - postgres
 
-  mongodb:
+  mongo:
     image: mongo:latest
-    container_name: mongodb
+    container_name: mongo
     restart: always
     ports:
       - "27027:27017"
@@ -238,6 +270,174 @@ services:
     networks:
       - audioNetwork
 
+  elasticsearch:
+    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.2
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=audio123!
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - ./app-init/monitoring/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - audioNetwork
+
+  logstash:
+    container_name: logstash
+    image: docker.elastic.co/logstash/logstash:7.15.2
+    environment:
+      - "LS_JAVA_OPTS=-Xms512m -Xmx512m"
+    command: logstash -f /etc/logstash/conf.d/logstash.conf
+    volumes:
+      - ./app-init/monitoring/logstash/config:/etc/logstash/conf.d
+    ports:
+      - "5044:5044"
+      - "5001:5001/tcp"
+      - "5001:5001/udp"
+      - "9600:9600"
+      - "4560:4560"
+    networks:
+      - audioNetwork
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:7.15.2
+    ports:
+      - "5601:5601"
+    volumes:
+      - ./app-init/monitoring/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    networks:
+      - audioNetwork
+    depends_on:
+      - elasticsearch
+
+  mongodb-express:
+    image: mongo-express
+    container_name: mongodb-express
+    restart: always
+    ports:
+      - "8881:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGODB_USERNAME}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGODB_PASSWORD}
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
+    networks:
+      - audioNetwork
+    depends_on:
+      - mongo
+
+  mongodb-exporter:
+    image: xendera/mongodb-exporter
+    container_name: mongodb-exporter
+    restart: always
+    ports:
+      - "9216:9216"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017
+    networks:
+      - audioNetwork
+    depends_on:
+      - mongo
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/audio?sslmode=disable"
+    networks:
+      - audioNetwork
+    depends_on:
+      - postgres
+
+  es-exporter:
+    image: justwatch/elasticsearch_exporter:1.0.2
+    container_name: es-exporter
+    restart: always
+    command:
+      - '-es.uri=http://host.docker.internal:9200'
+    ports:
+      - "9108:9108"
+    networks:
+      - audioNetwork
+
+  cadvisor:
+    image: google/cadvisor
+    expose:
+      - 8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - audioNetwork
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - 9100
+    networks:
+      - audioNetwork
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./app-init/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - audioNetwork
+    depends_on:
+      - mongodb-exporter
+      - postgres-exporter
+      - cadvisor
+      - rabbitmq
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - audioNetwork
+    volumes:
+      - ./app-init/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./app-init/monitoring/grafana/provisioning/dashboards-provisioning:/etc/grafana/provisioning/dashboards
+      - ./app-init/monitoring/grafana/provisioning/dashboards:/var/lib/grafana/dashboards
+      - ./data/grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
 # Volumes
 volumes:
   data:
@@ -245,6 +445,8 @@ volumes:
   pd_data:
     driver: local
   mongo_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 #Network

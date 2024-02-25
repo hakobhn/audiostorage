@@ -25,39 +25,39 @@ public class ProcessorServiceImpl implements ProcessorService {
     private final StorageDetailsService storageDetailsService;
 
     @Override
-    public void processAudioFile(AudioMessage message) {
+    public void processAudioFile(AudioMessage message, String traceId) {
         log.info("Processing message {}", message.getLocation());
         byte[] data = message.getData();
         if (!metadataService.detectContentType(data).equalsIgnoreCase("audio/mpeg")) {
-            resourcesService.delete(message.getLocation());
+            resourcesService.delete(message.getLocation(), traceId);
             throw new UnsupportedFileFormatException("Not audio/mpeg file submitted");
         }
 
         try {
             AudioMetadata metadata = metadataService.extract(message.getData());
 
-            storageDetailsService.makePermanent(message.getDetailsId());
+            storageDetailsService.makePermanent(message.getDetailsId(), traceId);
 
             AudioShort audioShort = resourcesService.save(AudioInput.builder()
                     .name(message.getName())
                     .location(message.getLocation())
                     .bytes(data.length)
-                    .build());
+                    .build(), "traceId");
 
             metadata.setResourceId(audioShort.getId());
             log.info("Sending add new song request to songs microservice.");
-            songService.addSong(metadata);
+            songService.addSong(metadata, traceId);
         } catch (Exception e) {
             log.warn("Unable to process file {}", message.getName(), e);
-            resourcesService.delete(message.getLocation());
+            resourcesService.delete(message.getLocation(), traceId);
         }
 
     }
 
     @Override
-    public void deleteAudioFile(Long resourceId) {
+    public void deleteAudioFile(Long resourceId, String traceId) {
         try {
-            songService.deleteSong(resourceId);
+            songService.deleteSong(resourceId, traceId);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
