@@ -1,6 +1,10 @@
 server:
   port: 8080
 
+logstash:
+  host: localhost:4560
+  enabled: false
+
 spring:
   profiles:
     active:
@@ -17,6 +21,12 @@ logging:
     org.springframework.web.HttpLogging: TRACE
     reactor.netty.http.server: DEBUG
     reactor.netty.http.client: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
 
 
 

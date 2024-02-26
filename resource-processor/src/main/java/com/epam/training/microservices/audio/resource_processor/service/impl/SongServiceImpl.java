@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 
 import java.net.URI;
 
+import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
+
 @Slf4j
 @Service
 public class SongServiceImpl implements SongService {
@@ -58,9 +60,10 @@ public class SongServiceImpl implements SongService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public void addSong(AudioMetadata metadata) throws Exception {
+    public void addSong(AudioMetadata metadata, String traceId) throws Exception {
         HttpPost post = new HttpPost(serviceUri + SONGS_URL);
         post.addHeader("content-type", "application/json");
+        post.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
         post.setEntity(new StringEntity(objectMapper.writeValueAsString(metadata)));
 
         try (CloseableHttpResponse response = httpClient.execute(post)) {
@@ -78,8 +81,9 @@ public class SongServiceImpl implements SongService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public void deleteSong(Long resourceId) throws Exception {
+    public void deleteSong(Long resourceId, String traceId) throws Exception {
         HttpDelete delete = new HttpDelete(serviceUri + SONGS_DELETE_BY_RESOURCE_URL);
+        delete.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
         delete.setURI(new URIBuilder(delete.getURI())
                 .addParameter("resourceId", String.valueOf(resourceId))
                 .build());

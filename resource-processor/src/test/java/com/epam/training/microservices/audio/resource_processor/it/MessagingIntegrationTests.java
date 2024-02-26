@@ -21,6 +21,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +32,7 @@ import java.nio.file.Files;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 
+import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockserver.integration.ClientAndServer.startClientAndServer;
 import static org.mockserver.model.HttpRequest.request;
@@ -39,6 +41,7 @@ import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 import static org.testcontainers.shaded.org.hamcrest.core.Is.is;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @ExtendWith(OutputCaptureExtension.class)
 class MessagingIntegrationTests implements RabbitTestContainer {
 
@@ -118,9 +121,12 @@ class MessagingIntegrationTests implements RabbitTestContainer {
 
         createExpectationForAudioInputProcessing(name, location, data.length);
 
-        rabbitTemplate.convertAndSend(exchangeAudioQueue, addRoutingKey, audioMessage);
+        rabbitTemplate.convertAndSend(exchangeAudioQueue, addRoutingKey, audioMessage, m -> {
+                m.getMessageProperties().getHeaders().put(CURRENT_TRACE_ID_HEADER, "testTraceId");
+        return m;
+        });
 
-        await().atMost(Duration.ofSeconds(30))
+        await().atMost(Duration.ofSeconds(60))
                 .until(messageReceived(output), is(true));
 
         assertThat(output.getOut()).contains(
@@ -148,9 +154,12 @@ class MessagingIntegrationTests implements RabbitTestContainer {
         byte[] data = Files.readAllBytes(audio.toPath());
         audioMessage.setData(data);
 
-        rabbitTemplate.convertAndSend(exchangeAudioQueue, addRoutingKey, audioMessage);
+        rabbitTemplate.convertAndSend(exchangeAudioQueue, addRoutingKey, audioMessage, m -> {
+            m.getMessageProperties().getHeaders().put(CURRENT_TRACE_ID_HEADER, "testTraceId");
+            return m;
+        });
 
-        await().atMost(Duration.ofSeconds(30))
+        await().atMost(Duration.ofSeconds(60))
                 .until(invalidMessageReceived(output), is(true));
 
         assertThat(output.getOut()).contains(

@@ -1,5 +1,6 @@
 package com.epam.training.microservices.audio.resources.controller;
 
+import com.epam.training.microservices.audio.resources.component.Tracer;
 import com.epam.training.microservices.audio.resources.config.LocalizedMessageProvider;
 import com.epam.training.microservices.audio.resources.dto.AudioDto;
 import com.epam.training.microservices.audio.resources.dto.AudioInput;
@@ -55,6 +56,8 @@ public class AudioFileController {
     private final AudioQueueingService audioQueueingService;
     private final AudioFileService audioFileService;
     private final StorageDetailsService storageDetailsService;
+    private final Tracer tracer;
+
     @Autowired
     @Qualifier("AwsStorageService")
     private StorageService storageService;
@@ -65,12 +68,16 @@ public class AudioFileController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> upload(@RequestParam("file") MultipartFile uploadedFile) throws IOException {
 
+        log.debug("Trace id: {}", tracer.traceId());
+
+        log.debug("Received new audio content {}", uploadedFile.getOriginalFilename());
         byte[] data = uploadedFile.getBytes();
 
         String key = storageService.store(encode(uploadedFile.getOriginalFilename()), data);
 
         StorageDetailsShort detailsShort = storageDetailsService.saveStaging(bucketName, key);
 
+        log.debug("Passing audio entry {} to processing", key);
         audioQueueingService.sendMessage(new AudioMessage(uploadedFile.getOriginalFilename(),
                 key, detailsShort.getId(), data));
         return new ResponseEntity<>(messageProvider.getMessage("meda.pushed.success"), HttpStatus.CREATED);
