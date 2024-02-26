@@ -1,6 +1,5 @@
 package com.epam.training.microservices.audio.resource_processor.service.impl;
 
-
 import com.epam.training.microservices.audio.resource_processor.service.ResourcesService;
 import com.epam.training.microservices.audio.resource_processor.service.StorageDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +14,8 @@ import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
+
+import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
 
 @Slf4j
 @Service
@@ -49,8 +50,9 @@ public class StorageDetailsServiceImpl implements StorageDetailsService {
 
     @Override
     @CircuitBreaker(name = "makePermanent", fallbackMethod = "fallbackForMakePermanent")
-    public void makePermanent(Long id) {
+    public void makePermanent(Long id, String traceId) {
         HttpPatch patch = new HttpPatch(serviceUri + STORAGES_URL + "/" + id);
+        patch.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
 
         try (CloseableHttpResponse response = httpClient.execute(patch)) {
             log.info("Song delete request sent response {}", response.getStatusLine());
@@ -60,8 +62,8 @@ public class StorageDetailsServiceImpl implements StorageDetailsService {
         }
     }
 
-    public void fallbackForMakePermanent(Long id, Throwable t) {
+    public void fallbackForMakePermanent(Long id, String traceId, Throwable t) {
         log.warn("Got exception on makePermanent", t);
-        resourcesService.makePermanent(id);
+        resourcesService.makePermanent(id, traceId);
     }
 }

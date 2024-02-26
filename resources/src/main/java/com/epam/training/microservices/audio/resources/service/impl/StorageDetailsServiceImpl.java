@@ -1,5 +1,6 @@
 package com.epam.training.microservices.audio.resources.service.impl;
 
+import com.epam.training.microservices.audio.resources.component.Tracer;
 import com.epam.training.microservices.audio.resources.dto.StorageDetailsInput;
 import com.epam.training.microservices.audio.resources.dto.StorageDetailsShort;
 import com.epam.training.microservices.audio.resources.dto.StorageType;
@@ -21,12 +22,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.epam.training.microservices.audio.resources.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
+
 @Slf4j
 @Service
 public class StorageDetailsServiceImpl implements StorageDetailsService {
 
     private static final String STORAGES_URL = "/storages";
-
+    private final Tracer tracer;
     private final DiscoveryClient discoveryClient;
     private final CloseableHttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -39,9 +42,11 @@ public class StorageDetailsServiceImpl implements StorageDetailsService {
                                      String baseUri,
                                      @Value("${storages.service.id}")
                                      String serviceId,
+                                     Tracer tracer,
                                      DiscoveryClient discoveryClient,
                                      CloseableHttpClient httpClient,
                                      ObjectMapper objectMapper) {
+        this.tracer = tracer;
         this.discoveryClient = discoveryClient;
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
@@ -57,6 +62,8 @@ public class StorageDetailsServiceImpl implements StorageDetailsService {
         try {
             HttpPost post = new HttpPost(serviceUri + STORAGES_URL);
             post.addHeader("content-type", "application/json");
+            post.addHeader(CURRENT_TRACE_ID_HEADER, tracer.traceId());
+
             post.setEntity(new StringEntity(objectMapper.writeValueAsString(
                     StorageDetailsInput.builder()
                             .type(StorageType.STAGING)

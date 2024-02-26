@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.URI;
 
+import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
+
 @Slf4j
 @Service
 public class ResourcesServiceImpl implements ResourcesService {
@@ -62,11 +64,13 @@ public class ResourcesServiceImpl implements ResourcesService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public AudioShort save(AudioInput input) {
+    public AudioShort save(AudioInput input, String traceId) {
         try {
             HttpPost post = new HttpPost(serviceUri + RESOURCES_URL);
             post.addHeader("content-type", "application/json");
+            post.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
             post.setEntity(new StringEntity(objectMapper.writeValueAsString(input)));
+
             CloseableHttpResponse response = httpClient.execute(post);
             return objectMapper.readValue(response.getEntity().getContent(), AudioShort.class);
         } catch (IOException e) {
@@ -82,9 +86,11 @@ public class ResourcesServiceImpl implements ResourcesService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public void delete(String key) {
+    public void delete(String key, String traceId) {
         try {
             HttpDelete delete = new HttpDelete(serviceUri + RESOURCES_DELETE_BY_KEY_URL);
+            delete.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
+
             delete.setURI(new URIBuilder(delete.getURI())
                     .addParameter("key", key)
                     .build());
@@ -97,9 +103,10 @@ public class ResourcesServiceImpl implements ResourcesService {
     }
 
     @Override
-    public void makePermanent(Long id) {
+    public void makePermanent(Long id, String traceId) {
         try {
             HttpPatch patch = new HttpPatch(serviceUri + RESOURCES_MAKE_PERMANENT_URL + "/" + id);
+            patch.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
 
             httpClient.execute(patch);
         } catch (Exception e) {
