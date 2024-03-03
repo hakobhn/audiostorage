@@ -40,3 +40,4 @@ build/
 /config-service/logs
 /discovery-service/logs
 /storage/logs
+**/node_modules/

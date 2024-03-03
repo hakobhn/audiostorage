@@ -53,6 +53,7 @@ services:
       - processor
       - songs
       - logstash
+      - keycloak
 
   resources:
     build:
@@ -173,7 +174,7 @@ services:
     image: localstack/localstack
     hostname: s3.localhost.localstack.cloud
     ports:
-      - "4566-4599:4566-4599"
+      - "4566:4566"
     env_file:
       - .env
     environment:
@@ -437,6 +438,35 @@ services:
       - ./data/grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:18.0.2
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8090:8080"
+    networks:
+      - audioNetwork
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    volumes:
+      - ./app-init/keycloak/:/opt/keycloak/data/import/
+
+#  audio-ui:
+#    build:
+#      args:
+#        - NODE_ENV=development
+#      context: ./audio-ui
+#    ports:
+#      - "4200:3000"
+#    environment:
+#      - NODE_ENV=development
+#    networks:
+#      - audioNetwork
+#    depends_on:
+#      - resources
 
 # Volumes
 volumes:

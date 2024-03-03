@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import static com.epam.training.microservices.audio.resources.util.StringUtils.e
 
 @Slf4j
 @RestController
+@RolesAllowed({"ROLE_USER"})
 @RequestMapping(value = RESOURCES_URL)
 @RequiredArgsConstructor
 public class AudioFileController {
