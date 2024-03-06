@@ -25,11 +25,11 @@ public class ProcessorServiceImpl implements ProcessorService {
     private final StorageDetailsService storageDetailsService;
 
     @Override
-    public void processAudioFile(AudioMessage message, String traceId) {
+    public void processAudioFile(AudioMessage message, String traceId, String accessToken) {
         log.info("Processing message {}", message.getLocation());
         byte[] data = message.getData();
         if (!metadataService.detectContentType(data).equalsIgnoreCase("audio/mpeg")) {
-            resourcesService.delete(message.getLocation(), traceId);
+            resourcesService.delete(message.getLocation(), traceId, accessToken);
             throw new UnsupportedFileFormatException("Not audio/mpeg file submitted");
         }
 
@@ -42,14 +42,14 @@ public class ProcessorServiceImpl implements ProcessorService {
                     .name(message.getName())
                     .location(message.getLocation())
                     .bytes(data.length)
-                    .build(), "traceId");
+                    .build(), traceId, accessToken);
 
             metadata.setResourceId(audioShort.getId());
             log.info("Sending add new song request to songs microservice.");
             songService.addSong(metadata, traceId);
         } catch (Exception e) {
             log.warn("Unable to process file {}", message.getName(), e);
-            resourcesService.delete(message.getLocation(), traceId);
+            resourcesService.delete(message.getLocation(), traceId, accessToken);
         }
 
     }

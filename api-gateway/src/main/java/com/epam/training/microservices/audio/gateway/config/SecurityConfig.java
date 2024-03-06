@@ -1,46 +1,43 @@
 package com.epam.training.microservices.audio.gateway.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.oauth2.client.oidc.web.server.logout.OidcClientInitiatedServerLogoutSuccessHandler;
-import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
 
 @Configuration
+@EnableWebFluxSecurity
 public class SecurityConfig {
 
-	@Bean
-	public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, ServerLogoutSuccessHandler handler) {
-		http
-				.csrf(csrf->csrf.disable())
-				.authorizeExchange()
-				.pathMatchers("/actuator/**", "/","/logout.html")
-				.permitAll()
-			.and()
-				.authorizeExchange()
-				.anyExchange()
-				.authenticated()
-			.and()
-				.oauth2Login() // to redirect to oauth2 login page.
-			.and()
-				.logout()
-				.logoutSuccessHandler(handler)
-		;
+	@Autowired
+	private Environment env;
 
+	@Bean
+	public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+		http
+				.authorizeExchange()
+				//ALLOWING REGISTER API FOR DIRECT ACCESS
+				.pathMatchers("/resources/**").authenticated()
+				//ALL OTHER APIS ARE AUTHENTICATED
+				.anyExchange().permitAll()
+				.and()
+				.csrf().disable()
+				.oauth2Login()
+				.and()
+				.oauth2ResourceServer()
+				.jwt();
 		return http.build();
 	}
 
 	@Bean
-	public ServerLogoutSuccessHandler keycloakLogoutSuccessHandler(ReactiveClientRegistrationRepository repository) {
+	public ReactiveJwtDecoder jwtDecoder() {
+		return ReactiveJwtDecoders.fromIssuerLocation(
+				env.getProperty("spring.security.oauth2.client.provider.my-keycloak-provider.issuer-uri"));
+	}
 
-        OidcClientInitiatedServerLogoutSuccessHandler oidcLogoutSuccessHandler =
-                new OidcClientInitiatedServerLogoutSuccessHandler(repository);
-
-        oidcLogoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}/logout.html");
-
-        return oidcLogoutSuccessHandler;
-    }
-    
 }

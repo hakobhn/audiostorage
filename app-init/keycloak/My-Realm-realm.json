@@ -56,7 +56,7 @@
       },
       {
         "id": "194da4b1-67b5-4a77-a2c5-9e90176f2caa",
-        "name": "ROLE_USER",
+        "name": "USER",
         "composite": false,
         "clientRole": false,
         "containerId": "My-Realm",
@@ -64,7 +64,7 @@
       },
       {
         "id": "194da4b1-67b5-4a77-a2c5-a38220c95927",
-        "name": "ROLE_ADMIN",
+        "name": "ADMIN",
         "composite": false,
         "clientRole": false,
         "containerId": "My-Realm",
@@ -479,8 +479,8 @@
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "realmRoles": [
-        "ROLE_ADMIN",
-        "ROLE_USER",
+        "ADMIN",
+        "USER",
         "default-roles-my-realm"
       ],
       "notBefore": 0,

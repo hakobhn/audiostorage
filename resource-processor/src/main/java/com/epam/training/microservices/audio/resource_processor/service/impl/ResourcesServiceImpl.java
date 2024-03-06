@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.URI;
 
+import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.AUTH_HEADER;
 import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
 
 @Slf4j
@@ -64,11 +65,12 @@ public class ResourcesServiceImpl implements ResourcesService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public AudioShort save(AudioInput input, String traceId) {
+    public AudioShort save(AudioInput input, String traceId, String accessToken) {
         try {
-            HttpPost post = new HttpPost(serviceUri + RESOURCES_URL);
+            HttpPost post = new HttpPost(serviceUri + RESOURCES_URL + "/save");
             post.addHeader("content-type", "application/json");
             post.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
+            post.addHeader(AUTH_HEADER, accessToken);
             post.setEntity(new StringEntity(objectMapper.writeValueAsString(input)));
 
             CloseableHttpResponse response = httpClient.execute(post);
@@ -86,10 +88,11 @@ public class ResourcesServiceImpl implements ResourcesService {
                     delayExpression = "${retry.delay}",
                     multiplierExpression = "${retry.multiply}",
                     maxDelayExpression = "${retry.maxDelay}"))
-    public void delete(String key, String traceId) {
+    public void delete(String key, String traceId, String accessToken) {
         try {
             HttpDelete delete = new HttpDelete(serviceUri + RESOURCES_DELETE_BY_KEY_URL);
             delete.addHeader(CURRENT_TRACE_ID_HEADER, traceId);
+            delete.addHeader(AUTH_HEADER, accessToken);
 
             delete.setURI(new URIBuilder(delete.getURI())
                     .addParameter("key", key)

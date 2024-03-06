@@ -8,6 +8,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.HttpServletRequest;
 
+import static com.epam.training.microservices.audio.resources.component.TracingConstants.AUTH_HEADER;
 import static com.epam.training.microservices.audio.resources.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
 
 @Component
@@ -18,5 +19,9 @@ public class Tracer {
 
     public String traceId() {
         return httpServletRequest.getHeader(CURRENT_TRACE_ID_HEADER);
+    }
+
+    public String accessToke() {
+        return httpServletRequest.getHeader(AUTH_HEADER);
     }
 }

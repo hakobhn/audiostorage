@@ -9,6 +9,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+import static com.epam.training.microservices.audio.resources.component.TracingConstants.AUTH_HEADER;
 import static com.epam.training.microservices.audio.resources.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
 
 @Slf4j
@@ -32,8 +36,11 @@ public class AudioQueueingServiceImpl implements AudioQueueingService {
     public void sendMessage(AudioMessage message) {
         log.debug("Trace id: {}", tracer.traceId());
         log.info("Passing add new audio massage to queue {}", message.getDetailsId());
+
         rabbitTemplate.convertAndSend(addExchangeName, addRoutingKey, message, m -> {
             m.getMessageProperties().getHeaders().put(CURRENT_TRACE_ID_HEADER, tracer.traceId());
+            m.getMessageProperties().getHeaders().put(AUTH_HEADER,
+                    Arrays.stream(tracer.accessToke().split("(?<=\\G.{" + 256 + "})")).collect(Collectors.toList()));
             return m;
         });
     }

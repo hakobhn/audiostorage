@@ -13,12 +13,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,9 +46,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+
+@EnableAutoConfiguration(exclude = { SecurityAutoConfiguration.class })
 @SpringBootTest(classes = ResourcesApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @SqlGroup({
         @Sql(value = "classpath:data/schema-audio.sql", executionPhase = BEFORE_TEST_METHOD),
         @Sql(value = "classpath:data/data-audio.sql", executionPhase = BEFORE_TEST_METHOD)
@@ -69,6 +74,9 @@ class AudioFileControllerTest {
     @MockBean
     private AudioQueueingService audioQueueingService;
 
+    @MockBean
+    private WebSecurityConfiguration springSecurityFilterChain;
+
     @Captor
     private ArgumentCaptor<AudioMessage> messageCaptor;
 
@@ -88,7 +96,9 @@ class AudioFileControllerTest {
         // when
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders
                         .multipart(RESOURCES_URL)
-                        .file("file", data))
+                        .file("file", data)
+                        .header("x-current-trace-id", "testTraceId")
+                        .header("AUTHORIZATION", "testAccessToken"))
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -114,7 +124,7 @@ class AudioFileControllerTest {
                 classLoader.getResource("json/sample-audio-input.json")).toURI()));
 
         RequestBuilder request = MockMvcRequestBuilders
-                .post(RESOURCES_URL)
+                .post(RESOURCES_URL+"/save")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(inputStr);
 
@@ -178,6 +188,8 @@ class AudioFileControllerTest {
         // given
         RequestBuilder request = MockMvcRequestBuilders
                 .delete(RESOURCES_URL + "/deleteByKey")
+                .header("x-current-trace-id", "testTraceId")
+                .header("AUTHORIZATION", "testAccessToken")
                 .param("key", "C:\\audio\\20240114223443_Vanna-Rainelle---YAD-Яд-ENGLISH-VERSION.mp3");
 
         // when

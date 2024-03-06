@@ -7,8 +7,202 @@
 	},
 	"item": [
 		{
+			"name": "Authorization",
+			"item": [
+				{
+					"name": "Token introspect",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJURWgzM2dQZVc5V0RyN0FoV1RCcHFYRzNWTFhGdFUxNVk5N2xjdWJWUmxzIn0.eyJleHAiOjE3MDk2NjgwODIsImlhdCI6MTcwOTY2Nzc4MiwianRpIjoiNjNlMjAwNTctYWVhOC00Y2VmLThjNTgtN2UzYjY3OTY1Yjg5IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDkwL3JlYWxtcy9NeS1SZWFsbSIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiIzNGQxNDFmOS03N2RmLTQ5ZmEtODcwNS05NWU3N2RmOWUyMzciLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzcHJpbmctZ2F0ZXdheS1jbGllbnQiLCJzZXNzaW9uX3N0YXRlIjoiYjM3MGQyZTYtOWIzZi00MjQ0LTk2MDYtNmVkN2VlYmMxMmU4IiwiYWNyIjoiMSIsInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJST0xFX1VTRVIiLCJvZmZsaW5lX2FjY2VzcyIsIlJPTEVfQURNSU4iLCJ1bWFfYXV0aG9yaXphdGlvbiIsImRlZmF1bHQtcm9sZXMtbXktcmVhbG0iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InByb2ZpbGUgZW1haWwiLCJzaWQiOiJiMzcwZDJlNi05YjNmLTQyNDQtOTYwNi02ZWQ3ZWViYzEyZTgiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlVzZXIgTGFzdCBuYW1lIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdCIsImdpdmVuX25hbWUiOiJVc2VyIiwiZmFtaWx5X25hbWUiOiJMYXN0IG5hbWUifQ.Ham4QM-0ODnASOK3ByZajctQfJtEqvLVFcv5K_Ik-h8W7U46oskM42FK0_WD6Gc6NMCqaRHbr3LtvGJ3pU7SFhA8ibiJNDkO6soNxoTNTZM7bm841coeLS1j63nVnqyLc0QjP-qIBU4yKVgoBAgCd3DnAGngXWeHIw2ltYDZFDKUvg5qGrJJRezPW9YS03ZuFY59nkvzL5rlwwWddzVd8wJeCqEG1vkd8PtYZgmOQY3sqckKimxy73742rsWW8E2SrgUkEbJ2cybNdJLr8RsuAYJ5cxCY__w08-1DbUhHkpVLnjRyCs8SNUKs5bhhEjK2YifgmsKOsz3UO2txO085A"
+							},
+							{
+								"key": "Cookie",
+								"value": "AUTH_SESSION_ID=c43b2838-b919-47a3-9961-15e4144872c4; AUTH_SESSION_ID_LEGACY=c43b2838-b919-47a3-9961-15e4144872c4; SESSION=6f5881a0-648c-4622-9e9b-640f4ce2617a; AUTH_SESSION_ID=c43b2838-b919-47a3-9961-15e4144872c4; AUTH_SESSION_ID_LEGACY=c43b2838-b919-47a3-9961-15e4144872c4; SESSION=6f5881a0-648c-4622-9e9b-640f4ce2617a"
+							}
+						],
+						"url": "{{server}}/realms/{{realm}}/protocol/openid-connect/token/introspect"
+					},
+					"response": []
+				},
+				{
+					"name": "Access Token retrieval endpoint",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);\r",
+									"pm.environment.set(\"access_token\", jsonData.access_token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "{{test_username}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{test_password}}",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "{{client_id}}",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{client_secret}}",
+									"type": "text"
+								},
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "openid profile email",
+									"type": "text"
+								}
+							]
+						},
+						"url": "{{server}}/realms/{{realm}}/protocol/openid-connect/token"
+					},
+					"response": []
+				},
+				{
+					"name": "Certificate endpoint",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJURWgzM2dQZVc5V0RyN0FoV1RCcHFYRzNWTFhGdFUxNVk5N2xjdWJWUmxzIn0.eyJleHAiOjE3MDk2Njc4MTAsImlhdCI6MTcwOTY2NzUxMCwianRpIjoiZTUyYjMwZTgtN2I2NC00ZDMzLWI5ODMtY2U2NDljNDMxZTI0IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDkwL3JlYWxtcy9NeS1SZWFsbSIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiIzNGQxNDFmOS03N2RmLTQ5ZmEtODcwNS05NWU3N2RmOWUyMzciLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzcHJpbmctZ2F0ZXdheS1jbGllbnQiLCJzZXNzaW9uX3N0YXRlIjoiNTljZDhmZWQtZTljZC00ZGVjLTljMWMtMDVmODQ0MjdkNDY5IiwiYWNyIjoiMSIsInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJST0xFX1VTRVIiLCJvZmZsaW5lX2FjY2VzcyIsIlJPTEVfQURNSU4iLCJ1bWFfYXV0aG9yaXphdGlvbiIsImRlZmF1bHQtcm9sZXMtbXktcmVhbG0iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6InByb2ZpbGUgZW1haWwiLCJzaWQiOiI1OWNkOGZlZC1lOWNkLTRkZWMtOWMxYy0wNWY4NDQyN2Q0NjkiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlVzZXIgTGFzdCBuYW1lIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdCIsImdpdmVuX25hbWUiOiJVc2VyIiwiZmFtaWx5X25hbWUiOiJMYXN0IG5hbWUifQ.XCKuXTQyoWX8sO5aIR_HYX6eo2qQiPmZzQMfZ2iTaFW-FM4QVt2S_zwK3TcrvKTm14WjoW-crEO9BfRn2yGIw9nPWx_d66iKF-7kkuRcuduFQW6RDE6hvxXRjADW4NGvFdNHVa2iN__eISpp4MKi0Y294auqveTg36DZSFEKCXgdNvkzA-id7hBipbIxNNcecr7H0o0kkQS3WXwK5sowtjrDhULBBulh1qtN0Nb15eahrNhw0CQR5Dn1QSiRT-SvQmurgTxTXBoF8a1fsfihxOLPnmlYmkXuTthpxwzInjDGlBUY6H-qB9CRp9vPQ7qkQHpCk4mC_st9MjkgCTQ8Vg"
+							},
+							{
+								"key": "Cookie",
+								"value": "AUTH_SESSION_ID=c43b2838-b919-47a3-9961-15e4144872c4; AUTH_SESSION_ID_LEGACY=c43b2838-b919-47a3-9961-15e4144872c4; SESSION=6f5881a0-648c-4622-9e9b-640f4ce2617a"
+							}
+						],
+						"url": "http://localhost:8090/realms/My-Realm/protocol/openid-connect/certs"
+					},
+					"response": []
+				},
+				{
+					"name": "Authorize Endpoint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{server}}/realms/{{realm}}/protocol/openid-connect/auth?response_type=code&client_id=jwtClient",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"realms",
+								"{{realm}}",
+								"protocol",
+								"openid-connect",
+								"auth"
+							],
+							"query": [
+								{
+									"key": "response_type",
+									"value": "code"
+								},
+								{
+									"key": "client_id",
+									"value": "jwtClient"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Userinfo endpoint",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "POST",
+						"header": [],
+						"url": "{{server}}/realms/{{realm}}/protocol/openid-connect/userinfo"
+					},
+					"response": []
+				},
+				{
+					"name": "Update storage",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": "http://localhost:8083/storages/5"
+					},
+					"response": []
+				},
+				{
+					"name": "auth-config",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{server}}/realms/{{realm}}/.well-known/openid-configuration"
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Add resources",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "{{access_token}}"
+					}
+				},
 				"method": "POST",
 				"header": [
 					{
@@ -33,9 +227,25 @@
 		},
 		{
 			"name": "Get resources",
+			"protocolProfileBehavior": {
+				"followAuthorizationHeader": true
+			},
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "{{access_token}}"
+					}
+				},
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
 				"url": "{{base_url}}/resources/1"
 			},
 			"response": []
@@ -43,6 +253,12 @@
 		{
 			"name": "Delete resources",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "{{access_token}}"
+					}
+				},
 				"method": "DELETE",
 				"header": [],
 				"url": {
@@ -66,6 +282,12 @@
 		{
 			"name": "Get song by id",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "{{access_token}}"
+					}
+				},
 				"method": "GET",
 				"header": [],
 				"url": "{{base_url}}/songs/65c8e8c54bf219777be8ab81"
@@ -75,6 +297,12 @@
 		{
 			"name": "Add song",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "{{access_token}}"
+					}
+				},
 				"method": "POST",
 				"header": [],
 				"body": {
@@ -93,11 +321,75 @@
 		{
 			"name": "Songs page",
 			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "{{access_token}}"
+					}
+				},
 				"method": "GET",
 				"header": [],
 				"url": "{{base_url}}/songs/list"
 			},
 			"response": []
+		},
+		{
+			"name": "Make permanent",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJURWgzM2dQZVc5V0RyN0FoV1RCcHFYRzNWTFhGdFUxNVk5N2xjdWJWUmxzIn0.eyJleHAiOjE3MDk3MTQ1NjcsImlhdCI6MTcwOTcxNDI2NywianRpIjoiMDJiZTVkYzMtZjBjYy00NTQyLWIyZDQtNmUzOWQxZWY1ZTE5IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDkwL3JlYWxtcy9NeS1SZWFsbSIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiIzNGQxNDFmOS03N2RmLTQ5ZmEtODcwNS05NWU3N2RmOWUyMzciLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzcHJpbmctZ2F0ZXdheS1jbGllbnQiLCJzZXNzaW9uX3N0YXRlIjoiZGMyNjFhM2MtZmQyZS00MDkyLWJlMDMtNjBiZWM3ODI1YjAyIiwiYWNyIjoiMSIsInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIiwiQURNSU4iLCJVU0VSIiwiZGVmYXVsdC1yb2xlcy1teS1yZWFsbSJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJzaWQiOiJkYzI2MWEzYy1mZDJlLTQwOTItYmUwMy02MGJlYzc4MjViMDIiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlVzZXIgTGFzdCBuYW1lIiwicHJlZmVycmVkX3VzZXJuYW1lIjoidGVzdCIsImdpdmVuX25hbWUiOiJVc2VyIiwiZmFtaWx5X25hbWUiOiJMYXN0IG5hbWUifQ.h1MKgjvjlOqm28xp0fc9c-2Cj6lQ87ffLAL200b8kcjKF3ho7BHC4aJEUgNSsvxXPoEaVJDFd36zCW609XTpLP_t9F3MLxNQGHOeneKDXCTdUZyHa9enzAGmlDvc0CBI1Ez17olKp0oFfqX_c6t_Ov0_yiEGjBjz2pBGcnRTnzm-UDqg1sDwsXolXGaJ9oENSdUQrSAnLF5y_NNYUEfraW_3H1EOj2ESPlz3CVFjm_F-Hf8JuqZZnKAxY7v3XMZNGBQAttdpc9Qg0TW0xDh0aXmzBESxuNG5SuA_hrROgxpggJHGuDLHiAYynSJUf8NIAfq78yJRk1yAUGYtmIcclw"
+					}
+				],
+				"url": "http://localhost:8080/resources/makepermanent/1"
+			},
+			"response": []
+		},
+		{
+			"name": "Save audio db record",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "{{access_token}}"
+					}
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"bohemian_rhapsody_22. Queen - The Show Must Go On.mp3\",\r\n    \"location\": \"20240306155237_bohemian_rhapsody_22.%20Queen%20-%20The%20Show%20Must%20Go%20On.mp3\",\r\n    \"bytes\": 6579444\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "{{base_url}}/resources/save"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
 		}
 	]
 }

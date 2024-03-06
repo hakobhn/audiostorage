@@ -23,6 +23,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +36,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.security.RolesAllowed;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,7 +49,6 @@ import static com.epam.training.microservices.audio.resources.util.StringUtils.e
 
 @Slf4j
 @RestController
-@RolesAllowed({"ROLE_USER"})
 @RequestMapping(value = RESOURCES_URL)
 @RequiredArgsConstructor
 public class AudioFileController {
@@ -86,7 +85,7 @@ public class AudioFileController {
     }
 
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/save", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AudioShort> save(@Validated @RequestBody AudioInput audioInput) {
         try {
             AudioDto dto = audioFileService.create(audioInput);
@@ -97,6 +96,7 @@ public class AudioFileController {
         }
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     @GetMapping(value = "/{id}", produces = "audio/mpeg")
     public HttpEntity<byte[]> download(@PathVariable("id") long id, HttpServletResponse response) throws IOException {
         AudioDto dto = audioFileService.getById(id);

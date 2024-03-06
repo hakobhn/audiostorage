@@ -9,6 +9,10 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.AUTH_HEADER;
 import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
 import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.TRACE_ID;
 
@@ -20,11 +24,15 @@ public class AudioConsumer {
     private final ProcessorService processService;
 
     @RabbitListener(queues = "${audio.rabbitmq.add.queue}")
-    public void consume(AudioMessage message, @Header(CURRENT_TRACE_ID_HEADER) String traceId) {
+    public void consume(AudioMessage message,
+                        @Header(CURRENT_TRACE_ID_HEADER) String traceId,
+                        @Header(AUTH_HEADER) List<String> accessTokenParts) {
         log.info("Received new message {} location {} traceId {}", message.getName(), message.getLocation(), traceId);
+
         try {
             MDC.put(TRACE_ID, traceId);
-            processService.processAudioFile(message, traceId);
+            processService.processAudioFile(message, traceId, accessTokenParts.stream()
+                    .collect(Collectors.joining()));
             MDC.remove(TRACE_ID);
         } catch (Exception e) {
             log.error("Not valid audio file with location {}", message.getLocation());

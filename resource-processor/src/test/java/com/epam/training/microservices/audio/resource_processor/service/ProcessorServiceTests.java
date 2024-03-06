@@ -68,11 +68,11 @@ class ProcessorServiceTests {
         audioMessage.setData(data);
 
         // when
-        when(resourcesService.save(any(AudioInput.class), anyString())).thenReturn(new AudioShort(1L));
-        processorService.processAudioFile(audioMessage, "testTraceId");
+        when(resourcesService.save(any(AudioInput.class), anyString(), anyString())).thenReturn(new AudioShort(1L));
+        processorService.processAudioFile(audioMessage, "testTraceId", "testToken");
 
         // then
-        verify(resourcesService).save(audioInputCaptor.capture(), anyString());
+        verify(resourcesService).save(audioInputCaptor.capture(), anyString(), anyString());
         AudioInput inputValue = audioInputCaptor.getValue();
         assertThat(inputValue.getName()).isEqualTo(audioMessage.getName());
         assertThat(inputValue.getLocation()).isEqualTo(audioMessage.getLocation());
@@ -98,11 +98,12 @@ class ProcessorServiceTests {
 
         // when
         Exception exception = assertThrows(UnsupportedFileFormatException.class, () -> {
-            processorService.processAudioFile(audioMessage, "testTraceId");
+            processorService.processAudioFile(audioMessage, "testTraceId", "testToken");
         });
 
         // then
         assertThat(exception.getMessage()).isEqualTo("Not audio/mpeg file submitted");
-        verify(resourcesService, times(1)).delete(audioMessage.getLocation(), "testTraceId");
+        verify(resourcesService, times(1)).delete(audioMessage.getLocation(),
+                "testTraceId", "testToken");
     }
 }

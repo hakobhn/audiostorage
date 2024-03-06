@@ -49,9 +49,6 @@ services:
     depends_on:
       - config-service
       - discovery-service
-      - resources
-      - processor
-      - songs
       - logstash
       - keycloak
 
@@ -87,6 +84,7 @@ services:
     depends_on:
       - config-service
       - discovery-service
+      - api-gateway
       - rabbitmq
       - postgres
       - localstack
@@ -101,8 +99,8 @@ services:
       - .env
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
-      RESOURCES_MS_BASE_URI: http://resources:8081
-      SONGS_MS_BASE_URI: http://songs:8082
+      RESOURCES_MS_BASE_URI: http://api-gateway:8080
+      SONGS_MS_BASE_URI: http://api-gateway:8080
       STORAGES_MS_BASE_URI: http://storages:8083
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
@@ -141,6 +139,7 @@ services:
     depends_on:
       - config-service
       - discovery-service
+      - api-gateway
       - mongo
       - logstash
 

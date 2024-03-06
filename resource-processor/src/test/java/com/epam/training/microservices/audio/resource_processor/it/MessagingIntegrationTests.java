@@ -3,6 +3,7 @@ package com.epam.training.microservices.audio.resource_processor.it;
 import com.epam.training.microservices.audio.resource_processor.model.AudioInput;
 import com.epam.training.microservices.audio.resource_processor.model.AudioMessage;
 import com.epam.training.microservices.audio.resource_processor.model.AudioShort;
+import com.epam.training.microservices.audio.resource_processor.service.StorageDetailsService;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,10 +31,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.Callable;
 
+import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.AUTH_HEADER;
 import static com.epam.training.microservices.audio.resource_processor.component.TracingConstants.CURRENT_TRACE_ID_HEADER;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockserver.integration.ClientAndServer.startClientAndServer;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -50,12 +58,16 @@ class MessagingIntegrationTests implements RabbitTestContainer {
 
     private static final ClientAndServer mockServerClient = startClientAndServer();
     private static final String RESOURCES_URL = "/resources";
+    private static final String RESOURCES_SAVE_URL = "/resources/save";
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
     @Autowired
     private ResourceLoader resourceLoader;
+
+    @MockBean
+    private StorageDetailsService storageDetailsService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -90,9 +102,11 @@ class MessagingIntegrationTests implements RabbitTestContainer {
                 .when(
                         request()
                                 .withMethod("POST")
-                                .withPath(RESOURCES_URL)
+                                .withPath(RESOURCES_SAVE_URL)
                                 .withHeaders(
-                                    Header.header("content-type", "application/json")
+                                    Header.header("content-type", "application/json"),
+                                    Header.header("x-current-trace-id", "testTraceId"),
+                                    Header.header("AUTHORIZATION", "testAccessToken")
                                 )
                                 .withBody(objectMapper.writeValueAsString(audioInput))
                 )
@@ -123,6 +137,7 @@ class MessagingIntegrationTests implements RabbitTestContainer {
 
         rabbitTemplate.convertAndSend(exchangeAudioQueue, addRoutingKey, audioMessage, m -> {
                 m.getMessageProperties().getHeaders().put(CURRENT_TRACE_ID_HEADER, "testTraceId");
+                m.getMessageProperties().getHeaders().put(AUTH_HEADER, List.of("testAccessToken"));
         return m;
         });
 
@@ -134,11 +149,13 @@ class MessagingIntegrationTests implements RabbitTestContainer {
                 "Processing message"
         );
 
+        verify(storageDetailsService).makePermanent(any(), eq("testTraceId"));
+
         mockServerClient
                 .verify(
                         request()
                                 .withMethod("POST")
-                                .withPath(RESOURCES_URL)
+                                .withPath(RESOURCES_SAVE_URL)
                 );
     }
 
@@ -156,6 +173,7 @@ class MessagingIntegrationTests implements RabbitTestContainer {
 
         rabbitTemplate.convertAndSend(exchangeAudioQueue, addRoutingKey, audioMessage, m -> {
             m.getMessageProperties().getHeaders().put(CURRENT_TRACE_ID_HEADER, "testTraceId");
+            m.getMessageProperties().getHeaders().put(AUTH_HEADER, List.of("testAccessToken"));
             return m;
         });
 

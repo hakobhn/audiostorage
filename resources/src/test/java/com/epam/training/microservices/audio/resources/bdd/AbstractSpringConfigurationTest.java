@@ -5,14 +5,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.junit.Before;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,11 +29,16 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
 
+@EnableAutoConfiguration(exclude = { SecurityAutoConfiguration.class })
+@AutoConfigureMockMvc(addFilters = false)
 @SpringBootTest(classes = ResourcesApplication.class, webEnvironment = WebEnvironment.DEFINED_PORT)
 @ContextConfiguration
 @DirtiesContext( classMode = DirtiesContext.ClassMode.AFTER_CLASS )
 @CucumberContextConfiguration
 public abstract class AbstractSpringConfigurationTest {
+
+    @MockBean
+    private WebSecurityConfiguration springSecurityFilterChain;
 
     @Autowired(required = false)
     private TestRestTemplate restTemplate;
