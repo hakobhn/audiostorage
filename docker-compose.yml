@@ -35,7 +35,7 @@ services:
       - "8080:8080"
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
-      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_MY-KEYCLOAK-PROVIDER_ISSUER-URI: http://keycloak:8090/realms/My-Realm
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_MY-KEYCLOAK-PROVIDER_ISSUER-URI: http://keycloak:8080/realms/My-Realm
       SPRING_CLOUD_CONFIG_URI: http://config-service:8888
       SPRING_PROFILES_ACTIVE: path
       SPRING_CLOUD_GATEWAY_ROUTES[0]_ID: resources-service
@@ -67,7 +67,7 @@ services:
       - .env
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:9000/eureka
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://keycloak:8090/realms/My-Realm
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://keycloak:8080/realms/My-Realm
       STORAGE_HOME: /home/storage
       AWS_ENDPOINT_URL: s3.localhost.localstack.cloud:4566
       STORAGES_MS_BASE_URI: http://storages:8083
